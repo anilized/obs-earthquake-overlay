@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { connectEMSC, EmscProps } from '../lib/emsc'
 import { chan, loadSettings } from '../lib/config'
+import { reverseGeocodeCity } from '../lib/revgeo'
 import { useLocation } from 'react-router-dom'
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -34,14 +35,16 @@ function accent(m: number) {
 export default function Overlay() {
   const [cfg, setCfg] = useState(loadSettings)
   const [alert, setAlert] = useState<EmscProps | null>(null)
+  const [cityLine, setCityLine] = useState<string>('')
+
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const q = useQuery()
-  // optional query params to position the toast within your scene
-  const margin = Number(q.get('margin') ?? 16)           // px margin from edges
+  // Optional: control where the toast shows in your scene
+  const margin = Number(q.get('margin') ?? 16) // px
   const anchor = (q.get('anchor') ?? 'top-right') as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 
-  // settings sync + test messages
+  // settings sync + handle test messages from the Settings page
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const data = e.data as any
@@ -65,7 +68,9 @@ export default function Overlay() {
             p.mag >= cfg.minMag &&
             p.lat >= b.latMin && p.lat <= b.latMax &&
             p.lon >= b.lonMin && p.lon <= b.lonMax
-          ) showNewAlert(p)
+          ) {
+            showNewAlert(p)
+          }
         } else {
           showNewAlert(p)
         }
@@ -76,7 +81,7 @@ export default function Overlay() {
     return () => { chan.removeEventListener('message', handler as any) }
   }, [cfg])
 
-  // resolve sound: settings value or default asset
+  // resolve sound: custom URL or default packaged asset
   const soundSrc = useMemo(() => {
     const custom = (cfg.soundUrl || '').trim()
     if (custom) {
@@ -85,7 +90,7 @@ export default function Overlay() {
     return asset('assets/default_alert.mp3')
   }, [cfg.soundUrl])
 
-  // live feed
+  // live EMSC feed
   useEffect(() => {
     return connectEMSC((p) => {
       const b = cfg.bbox
@@ -97,10 +102,18 @@ export default function Overlay() {
     })
   }, [cfg])
 
-  // replace old -> show new; restart audio
+  // replace old -> show new; restart audio; fetch city
   function showNewAlert(p: EmscProps) {
     setAlert(null)
-    setTimeout(() => setAlert(p), 0)
+    setCityLine('')
+    setTimeout(async () => {
+      setAlert(p)
+      try {
+        const g = await reverseGeocodeCity(Number(p.lat), Number(p.lon), 'en')
+        const parts = [g.city || g.locality, g.admin].filter(Boolean)
+        if (parts.length) setCityLine(parts.join(', '))
+      } catch { /* ignore, we’ll fallback to flynn_region */ }
+    }, 0)
   }
 
   useEffect(() => {
@@ -115,7 +128,7 @@ export default function Overlay() {
     } catch {}
   }, [alert, cfg.beep, soundSrc])
 
-  // auto dismiss
+  // auto dismiss after a while
   useEffect(() => {
     if (!alert) return
     const m = Number(alert.mag ?? 0)
@@ -129,7 +142,7 @@ export default function Overlay() {
   const chip = accent(m)
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
   const title = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const subtitle = alert ? `${alert.flynn_region ?? 'Region'} • ${alert.depth ?? '?'} km` : ''
+  const subtitle = alert ? `${cityLine || (alert.flynn_region ?? 'Region')} • ${alert.depth ?? '?'} km` : ''
   const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
 
   // anchor classes
@@ -154,18 +167,14 @@ export default function Overlay() {
           >
             <div className="px-4 py-3 flex gap-3 items-start">
               {/* severity chip */}
-              <div className={`shrink-0 h-10 w-10 ${chip} rounded-xl flex items-center justify-center font-bold shadow-md`}>
+              <div className={`shrink-0 h-10 w-10 ${chip} rounded-xl flex items-center justify-center font-bold`}>
                 !
               </div>
 
               {/* text */}
               <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold truncate">
-                  {title}
-                </div>
-                <div className="text-[13px] text-white/90 truncate">
-                  {subtitle}
-                </div>
+                <div className="text-[15px] font-semibold truncate">{title}</div>
+                <div className="text-[13px] text-white/90 truncate">{subtitle}</div>
                 <div className="mt-1 text-[12px] text-white/70 truncate">
                   {timeStr} • {coords}
                 </div>
@@ -196,6 +205,7 @@ export default function Overlay() {
         preload="auto"
         onError={() => {
           const a = audioRef.current
+          // if custom URL failed and no custom is set, retry packaged asset
           if (a && !cfg.soundUrl) a.src = asset('assets/default_alert.mp3')
         }}
       />
