@@ -6,7 +6,7 @@ Bu proje, **EMSC (European-Mediterranean Seismological Centre)** verilerini kull
 
 ---
 
-## 🚀 OBS Üzerinde Kullanım (Yayıncılar için)
+## OBS Üzerinde Kullanım (Yayıncılar için)
 
 ### 1- Ayarlar Paneli (OBS Dock)
 
@@ -55,27 +55,11 @@ Bu sayede overlay tasarımını veya ses dosyasını test edebilirsin.
 ## Ses Dosyası
 
 - Varsayılan ses: `assets/default_alert.mp3`
-- Kendi sesini eklemek istersen .mp3 uzantili herhangi bir link verebilirsin:
-     ```
-     assets/senin_sesin.mp3
-     ```
-  3. Kaydet → Test → Ses çalacaktır
+- Kendi sesini eklemek istersen .mp3 veya wav uzantili herhangi bir link verebilirsin:
 
 ---
 
-## ⚡ Geliştirici Notları
-
-| Özellik | Teknoloji |
-|----------|------------|
-| Arayüz | React + TypeScript + Tailwind |
-| Gerçek Zamanlı Veri | EMSC WebSocket |
-| Şehir Bilgisi | BigDataCloud Reverse Geocode API |
-| Barındırma | GitHub Pages |
-| Tarayıcı Uyumlu | ✅ OBS (Chromium tabanlı) |
-
----
-
-## ⚠️ Uyarı
+## Uyarı
 
 Bu sistem yalnızca **yayın içi bilgilendirme** amaçlıdır.  
 **Resmî uyarı veya afet bildirimi değildir.**
@@ -85,13 +69,12 @@ Resmî kurum uyarıları için [AFAD](https://deprem.afad.gov.tr/) veya [Kandill
 
 ---
 
-## 💬 Geri Bildirim / İletişim
+## Geri Bildirim / İletişim
 
-**Geliştirici:** [Anıl Can](https://github.com/anilcan)  
-🎥 **Kick / Twitch:** [kick.com/anildev](https://kick.com/anildev)  
-📧 **E-posta:** —  
+**Geliştirici:** [Anıl Can](https://github.com/anilized)    
+**E-posta:** [Anıl Can](anillcan7@gmail.com)  
 
 ---
 
-> 🧡 **Katkıda bulunmak istersen:**  
+> **Katkıda bulunmak istersen:**  
 > Pull Request açabilir veya GitHub Issues üzerinden fikirlerini paylaşabilirsin.
