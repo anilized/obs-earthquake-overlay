@@ -164,12 +164,6 @@ export default function Overlay() {
                   theme.ring
                 ].join(' ')}
               >
-                {/* intensity glow */}
-<div
-  className={`absolute inset-0 rounded-2xl blur-2xl opacity-40 ${theme.bg}`}
-  style={{ filter: 'blur(24px)' }}
-/>
-
                 <div className="px-5 py-4 flex gap-4 items-center">
                   {/* magnitude badge with color & number */}
                   <div className={`shrink-0 h-12 w-12 ${theme.bg} rounded-2xl flex items-center justify-center font-extrabold shadow-md`}>
