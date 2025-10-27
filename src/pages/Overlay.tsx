@@ -26,12 +26,13 @@ function asset(url: string) {
 
 /** Badge/accents by magnitude (emergency red palette) */
 function magColor(m: number) {
-  if (m >= 7.5) return { bg: 'bg-red-700', glow: 'from-red-600 to-rose-500', ring: 'ring-red-500/50' }
-  if (m >= 6.5) return { bg: 'bg-red-600', glow: 'from-red-500 to-rose-500', ring: 'ring-red-400/45' }
-  if (m >= 5.5) return { bg: 'bg-rose-600', glow: 'from-rose-500 to-red-400', ring: 'ring-rose-400/45' }
-  if (m >= 4.5) return { bg: 'bg-rose-500', glow: 'from-rose-500 to-amber-400', ring: 'ring-rose-300/40' }
-  return              { bg: 'bg-rose-400', glow: 'from-rose-400 to-amber-300', ring: 'ring-rose-300/35' }
+  if (m >= 7.5) return { bg: 'bg-[#b91c1c]', ring: 'ring-[#b91c1c]/50' }     // dark red
+  if (m >= 6.5) return { bg: 'bg-[#dc2626]', ring: 'ring-[#dc2626]/40' }     // red
+  if (m >= 5.5) return { bg: 'bg-[#f97316]', ring: 'ring-[#f97316]/40' }     // orange
+  if (m >= 4.5) return { bg: 'bg-[#facc15]', ring: 'ring-[#facc15]/40' }     // yellow
+  return              { bg: 'bg-[#22c55e]', ring: 'ring-[#22c55e]/40' }     // green
 }
+
 
 export default function Overlay() {
   const [cfg, setCfg] = useState(loadSettings)
@@ -163,6 +164,12 @@ export default function Overlay() {
                   theme.ring
                 ].join(' ')}
               >
+                {/* intensity glow */}
+<div
+  className={`absolute inset-0 rounded-2xl blur-2xl opacity-40 ${theme.bg}`}
+  style={{ filter: 'blur(24px)' }}
+/>
+
                 <div className="px-5 py-4 flex gap-4 items-center">
                   {/* magnitude badge with color & number */}
                   <div className={`shrink-0 h-12 w-12 ${theme.bg} rounded-2xl flex items-center justify-center font-extrabold shadow-md`}>
