@@ -1,75 +1,97 @@
-# React + TypeScript + Vite
+# Türkiye Deprem Uyarı Overlay (EMSC Gerçek Zamanlı)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, **EMSC (European-Mediterranean Seismological Centre)** verilerini kullanarak **Türkiye’de meydana gelen depremleri gerçek zamanlı** olarak tespit eder ve yayın sırasında **OBS üzerinden acil durum bildirimi** şeklinde gösterir.
+  
+> Kaynak: [EMSC Realtime WebSocket](https://www.seismicportal.eu/standing_order/websocket)
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 OBS Üzerinde Kullanım (Yayıncılar için)
 
-## React Compiler
+### 1- Ayarlar Paneli (OBS Dock)
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+OBS menüsünde:  
+**View → Docks → Custom Browser Docks...**
 
-Note: This will impact Vite dev & build performances.
+Yeni dock ekle:
 
-## Expanding the ESLint configuration
+- **Ad:** Deprem Uyarı Ayarları  
+- **URL:**
+  ```
+  https://anilcan.github.io/deprem-overlay/#/settings
+  ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Bu panel üzerinden:
+- Minimum büyüklük (`Min Magnitude`)
+- Ses dosyası (`Sound URL`)
+- Beep (aç/kapat)
+- Test uyarısı gönderme
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+ayarlarını yönetebilirsin.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 2- Ana Overlay (Deprem Bildirimi)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+OBS → **Kaynak Ekle → Tarayıcı (Browser Source)**  
+Aşağıdaki URL’yi yapıştır:
+
+```
+https://anilcan.github.io/deprem-overlay/#/overlay?size=800
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+> `size=800` değeri overlay’in kapladığı alanı belirtir.  
+> Önerilen: `800` veya `1000` piksel.  
+> Overlay şeffaftır, yalnızca deprem olduğunda görünür.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+## Test Uyarısı Gönderme
+
+Ayarlar sayfasında **“Send Test”** butonuna basarak sahte bir deprem uyarısı oluşturabilirsin.  
+Bu sayede overlay tasarımını veya ses dosyasını test edebilirsin.
+
+---
+
+## Ses Dosyası
+
+- Varsayılan ses: `assets/default_alert.mp3`
+- Kendi sesini eklemek istersen .mp3 uzantili herhangi bir link verebilirsin:
+     ```
+     assets/senin_sesin.mp3
+     ```
+  3. Kaydet → Test → Ses çalacaktır
+
+---
+
+## ⚡ Geliştirici Notları
+
+| Özellik | Teknoloji |
+|----------|------------|
+| Arayüz | React + TypeScript + Tailwind |
+| Gerçek Zamanlı Veri | EMSC WebSocket |
+| Şehir Bilgisi | BigDataCloud Reverse Geocode API |
+| Barındırma | GitHub Pages |
+| Tarayıcı Uyumlu | ✅ OBS (Chromium tabanlı) |
+
+---
+
+## ⚠️ Uyarı
+
+Bu sistem yalnızca **yayın içi bilgilendirme** amaçlıdır.  
+**Resmî uyarı veya afet bildirimi değildir.**
+
+Kaynak veriler, **EMSC** tarafından sağlanır.  
+Resmî kurum uyarıları için [AFAD](https://deprem.afad.gov.tr/) veya [Kandilli Rasathanesi](http://www.koeri.boun.edu.tr/) kaynaklarını takip ediniz.
+
+---
+
+## 💬 Geri Bildirim / İletişim
+
+**Geliştirici:** [Anıl Can](https://github.com/anilcan)  
+🎥 **Kick / Twitch:** [kick.com/anildev](https://kick.com/anildev)  
+📧 **E-posta:** —  
+
+---
+
+> 🧡 **Katkıda bulunmak istersen:**  
+> Pull Request açabilir veya GitHub Issues üzerinden fikirlerini paylaşabilirsin.

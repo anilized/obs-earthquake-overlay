@@ -215,7 +215,7 @@ export default function Settings() {
           />
         </div>
         <div className="mt-1 text-gray-500 text-xs">
-          Put your sound in <code>public/assets</code> and use a relative path like <code>assets/default_alert.mp3</code>.
+          You can put .mp3 or .wav link as an alternative (https://testdomain.com/test_alert.wav).
         </div>
       </section>
 

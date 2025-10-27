@@ -86,13 +86,18 @@ export default function Overlay() {
   }
 
   // resolve sound: custom or default packaged asset
-  const soundSrc = useMemo(() => {
-    const custom = (cfg.soundUrl || '').trim()
-    if (custom) {
+const soundSrc = useMemo(() => {
+  const custom = (cfg.soundUrl || '').trim()
+  if (custom) {
+    // allow both .mp3 and .wav files
+    const valid = custom.endsWith('.mp3') || custom.endsWith('.wav')
+    if (valid) {
       try { return new URL(custom, document.location.href).href } catch { return custom }
     }
-    return asset('assets/default_alert.mp3')
-  }, [cfg.soundUrl])
+  }
+  return asset('assets/default_alert.mp3')
+}, [cfg.soundUrl])
+
 
   // EMSC live
   useEffect(() => {
