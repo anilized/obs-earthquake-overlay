@@ -18,32 +18,30 @@ type TestMsg = {
   }
 }
 
-/** emergency red gradient */
-function redGradient(m: number) {
-  if (m >= 7.5) return 'from-red-700 via-red-600 to-red-500'
-  if (m >= 6.5) return 'from-red-600 via-red-500 to-rose-500'
-  if (m >= 5.5) return 'from-rose-600 via-red-500 to-rose-400'
-  return 'from-rose-500 via-red-500 to-rose-400'
+/** Build an asset URL that respects Vite base on GitHub Pages */
+function asset(url: string) {
+  try { return new URL(url, import.meta.env.BASE_URL).href } catch { return url }
 }
 
-/** build an asset URL that respects Vite base on GitHub Pages */
-function asset(url: string) {
-  try {
-    // import.meta.env.BASE_URL ends with a trailing slash
-    return new URL(url, import.meta.env.BASE_URL).href
-  } catch {
-    return url
-  }
+/** pick a small severity accent (all red family, but subtle) */
+function accent(m: number) {
+  if (m >= 7) return 'bg-red-600'
+  if (m >= 6) return 'bg-red-500'
+  if (m >= 5) return 'bg-rose-500'
+  return 'bg-rose-400'
 }
 
 export default function Overlay() {
   const [cfg, setCfg] = useState(loadSettings)
   const [alert, setAlert] = useState<EmscProps | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const q = useQuery()
-  const size = Math.max(400, Number(q.get('size') ?? 800)) // only the popup bounds; background stays transparent
 
-  // sync settings + handle test messages
+  const q = useQuery()
+  // optional query params to position the toast within your scene
+  const margin = Number(q.get('margin') ?? 16)           // px margin from edges
+  const anchor = (q.get('anchor') ?? 'top-right') as 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
+
+  // settings sync + test messages
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const data = e.data as any
@@ -87,7 +85,7 @@ export default function Overlay() {
     return asset('assets/default_alert.mp3')
   }, [cfg.soundUrl])
 
-  // EMSC
+  // live feed
   useEffect(() => {
     return connectEMSC((p) => {
       const b = cfg.bbox
@@ -99,7 +97,12 @@ export default function Overlay() {
     })
   }, [cfg])
 
-  // play (restart) audio per alert
+  // replace old -> show new; restart audio
+  function showNewAlert(p: EmscProps) {
+    setAlert(null)
+    setTimeout(() => setAlert(p), 0)
+  }
+
   useEffect(() => {
     if (!alert || !cfg.beep) return
     const a = audioRef.current
@@ -107,133 +110,111 @@ export default function Overlay() {
     try {
       a.pause()
       a.currentTime = 0
-      a.src = soundSrc // ensure fresh start, works on OBS + Pages
+      a.src = soundSrc
       void a.play().catch(() => {})
-    } catch { /* ignore */ }
+    } catch {}
   }, [alert, cfg.beep, soundSrc])
-
-  // replace old alert immediately
-  function showNewAlert(p: EmscProps) {
-    setAlert(null)
-    setTimeout(() => setAlert(p), 0)
-  }
 
   // auto dismiss
   useEffect(() => {
     if (!alert) return
-    const mag = Number(alert.mag ?? 0)
-    const keep = mag >= 7 ? 15000 : mag >= 6 ? 12000 : 9000
+    const m = Number(alert.mag ?? 0)
+    const keep = m >= 7 ? 12000 : m >= 6 ? 10000 : 8000
     const t = setTimeout(() => setAlert(null), keep)
     return () => clearTimeout(t)
   }, [alert])
 
-  // UI data
-  const mag = Number(alert?.mag ?? 0)
-  const grad = redGradient(mag)
+  // UI bits
+  const m = Number(alert?.mag ?? 0)
+  const chip = accent(m)
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
-  const title = alert ? `M${mag.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const sub   = alert ? `${alert.flynn_region ?? 'Region'} • ${alert.depth ?? '?'} km` : ''
+  const title = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
+  const subtitle = alert ? `${alert.flynn_region ?? 'Region'} • ${alert.depth ?? '?'} km` : ''
   const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
-  const strong = mag >= 6
+
+  // anchor classes
+  const posClass =
+    anchor === 'top-right' ? 'top-0 right-0' :
+    anchor === 'top-left' ? 'top-0 left-0' :
+    anchor === 'bottom-right' ? 'bottom-0 right-0' : 'bottom-0 left-0'
+
+  const slideClass =
+    anchor.startsWith('top') ? 'animate-slideDown' : 'animate-slideUp'
 
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
-      {/* popup canvas (transparent outside) */}
-      <div className="fixed top-0 left-0 flex items-center justify-center" style={{ width: size, height: size }}>
-        {/* show nothing when idle to keep overlay fully transparent */}
-        {alert && (
+      {/* nothing rendered when idle -> fully transparent */}
+      {alert && (
+        <div className={`fixed ${posClass}`} style={{ padding: margin }}>
+          {/* iPhone-like toast card */}
           <div
-            className="relative w-full h-full text-white"
-            style={{ pointerEvents: 'auto' }}
+            className={`pointer-events-auto max-w-[520px] w-[92vw] sm:w-[420px]
+                        text-white rounded-2xl border border-white/20 bg-[rgba(18,18,18,0.68)] backdrop-blur-xl shadow-xl
+                        opacity-0 translate-y-[-6px] ${slideClass}`}
           >
-            {/* popup fills the given size, with transparent edges via opacity */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden">
-              {/* subtle red glow background, still transparent overall */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${grad} opacity-25 blur-2xl`} />
+            <div className="px-4 py-3 flex gap-3 items-start">
+              {/* severity chip */}
+              <div className={`shrink-0 h-10 w-10 ${chip} rounded-xl flex items-center justify-center font-bold shadow-md`}>
+                !
+              </div>
 
-              {/* emergency card (centered, fills most of the canvas) */}
-              <div className="absolute inset-0 p-5 flex flex-col">
-                {/* top banner */}
-                <div className="flex items-center gap-3 rounded-xl border border-red-400/50 bg-red-600/30 backdrop-blur-md shadow-glass px-4 py-3
-                                translate-y-[-6px] opacity-0 animate-[fadein_.25s_ease-out_forwards]">
-                  <div className="h-8 w-8 rounded-full bg-red-500/90 flex items-center justify-center font-bold">!</div>
-                  <div className="text-lg font-semibold tracking-tight">EARTHQUAKE ALERT</div>
-                  <div className="ml-auto text-sm font-semibold px-2 py-1 rounded-md bg-red-500/80 border border-white/20">
-                    M{mag.toFixed(1)}
-                  </div>
+              {/* text */}
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-semibold truncate">
+                  {title}
                 </div>
-
-                {/* main panel fills */}
-                <div className="relative mt-4 flex-1 rounded-2xl border border-white/10 bg-[#0b0b0b]/80 backdrop-blur-md shadow-glass overflow-hidden
-                                translate-y-[-4px] opacity-0 animate-[fadein_.35s_ease-out_.06s_forwards]">
-                  {/* animated frame for stronger events */}
-                  <div className="absolute inset-0 rounded-2xl ring-2 ring-red-400/40" />
-                  {strong && (
-                    <>
-                      <div className="absolute inset-4 rounded-2xl border-2 border-red-300/30 animate-pulse" />
-                      <div className="absolute -inset-8 rounded-[32px] bg-red-500/20 blur-3xl animate-pulse" />
-                    </>
-                  )}
-
-                  {/* content */}
-                  <div className="relative h-full w-full grid grid-rows-[auto_auto_1fr_auto] gap-3 p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-full bg-red-600 shadow-lg flex items-center justify-center font-bold">
-                        {mag.toFixed(1)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-[26px] font-semibold leading-tight">{title}</div>
-                        <div className="mt-1 text-sm text-white/90">{sub}</div>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-white/75">
-                      {timeStr} • {coords}
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <div className="text-center text-red-100/95">
-                        <div className="text-lg font-medium tracking-wide">Emergency notification</div>
-                        <div className="text-sm opacity-80 mt-1">Data may update as solutions refine</div>
-                      </div>
-                    </div>
-
-                    {/* progress shimmer */}
-                    <div className="h-[3px] w-full bg-white/15 overflow-hidden rounded">
-                      <div className="h-full w-1/2 bg-white/35 animate-[shimmer_2.4s_linear_infinite]" />
-                    </div>
-                  </div>
-
-                  {/* dismiss (clickable if OBS interaction is enabled) */}
-                  <div
-                    className="absolute top-3 right-4 text-white/80 hover:text-white cursor-pointer select-none"
-                    onClick={() => setAlert(null)}
-                    title="Dismiss"
-                  >
-                    ✕
-                  </div>
+                <div className="text-[13px] text-white/90 truncate">
+                  {subtitle}
+                </div>
+                <div className="mt-1 text-[12px] text-white/70 truncate">
+                  {timeStr} • {coords}
                 </div>
               </div>
+
+              {/* close */}
+              <button
+                className="ml-2 text-white/70 hover:text-white transition-colors"
+                onClick={() => setAlert(null)}
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* progress bar */}
+            <div className="h-[3px] w-full bg-white/10 overflow-hidden rounded-b-2xl">
+              <div className="h-full w-1/2 bg-white/30 animate-shimmer" />
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* hidden audio */}
+      {/* audio (autoplay in OBS) */}
       <audio
         ref={audioRef}
         src={soundSrc}
         preload="auto"
         onError={() => {
-          // Fallback: if custom URL fails, attempt default asset
           const a = audioRef.current
           if (a && !cfg.soundUrl) a.src = asset('assets/default_alert.mp3')
         }}
       />
 
+      {/* tiny CSS for animations */}
       <style>{`
-        @keyframes fadein { to { opacity: 1; transform: translateY(0); } }
         @keyframes shimmer { 0% { transform: translateX(-100%);} 100% { transform: translateX(200%);} }
+        .animate-shimmer { animation: shimmer 2.4s linear infinite; }
+
+        @keyframes slideDown {
+          0% { opacity: 0; transform: translateY(-6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+          0% { opacity: 0; transform: translateY(6px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideDown { animation: slideDown .25s ease-out forwards; }
+        .animate-slideUp { animation: slideUp .25s ease-out forwards; }
       `}</style>
     </div>
   )
