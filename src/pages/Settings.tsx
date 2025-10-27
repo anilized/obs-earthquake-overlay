@@ -1,5 +1,15 @@
 import React, { useMemo, useState } from 'react'
-import { BOXES, BBox, defaultSettings, loadSettings, saveSettings } from '../lib/config'
+import { BOXES, BBox, defaultSettings, loadSettings, saveSettings, chan } from '../lib/config'
+
+type TestForm = {
+  mag: number
+  magtype: string
+  depth: number
+  lat: number
+  lon: number
+  flynn_region: string
+  respectFilters: boolean
+}
 
 export default function Settings() {
   const [s, setS] = useState(loadSettings)
@@ -20,10 +30,40 @@ export default function Settings() {
     saveSettings(payload)
   }
 
+  // --- TEST FORM ---
+  // Use middle of current bbox as default lat/lon
+  const midLat = (bboxFromCountry.latMin + bboxFromCountry.latMax) / 2
+  const midLon = (bboxFromCountry.lonMin + bboxFromCountry.lonMax) / 2
+
+  const [test, setTest] = useState<TestForm>({
+    mag: Math.max(3, Number(s.minMag) + 0.5),
+    magtype: 'Mw',
+    depth: 10,
+    lat: Number(midLat.toFixed(2)),
+    lon: Number(midLon.toFixed(2)),
+    flynn_region: s.country === 'CustomBBox' ? 'CUSTOM' : (s.country.toUpperCase() as string),
+    respectFilters: true
+  })
+
+  const sendTest = () => {
+    chan.postMessage({
+      type: 'test',
+      payload: {
+        ...test,
+        // ensure numbers
+        mag: Number(test.mag),
+        depth: Number(test.depth),
+        lat: Number(test.lat),
+        lon: Number(test.lon)
+      }
+    })
+  }
+
   return (
     <div className="p-4 text-[13px] leading-5">
       <h2 className="text-xl font-semibold mb-3">EMSC Overlay — Settings</h2>
 
+      {/* SETTINGS */}
       <section className="border border-gray-300 rounded-xl p-4 mb-4">
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <label className="min-w-[120px] font-semibold">Country</label>
@@ -77,6 +117,51 @@ export default function Settings() {
         </div>
         <div className="mt-1 text-gray-500 text-xs">
           Put your sound in <code>public/assets</code> and use a relative path like <code>assets/default_alert.mp3</code>.
+        </div>
+      </section>
+
+      {/* TEST */}
+      <section className="border border-gray-300 rounded-xl p-4 mb-4">
+        <h3 className="font-semibold mb-2">Test Alert</h3>
+
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div>Magnitude <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={test.mag} onChange={e=>setTest(t=>({...t, mag:Number(e.target.value)}))} /></div>
+          <div>Type <input className="w-20 px-2 py-1 border rounded" value={test.magtype} onChange={e=>setTest(t=>({...t, magtype:e.target.value}))} /></div>
+          <div>Depth <input className="w-20 px-2 py-1 border rounded" type="number" step="1" value={test.depth} onChange={e=>setTest(t=>({...t, depth:Number(e.target.value)}))} /></div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div>Lat <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lat} onChange={e=>setTest(t=>({...t, lat:Number(e.target.value)}))} /></div>
+          <div>Lon <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lon} onChange={e=>setTest(t=>({...t, lon:Number(e.target.value)}))} /></div>
+          <div>Region <input className="w-44 px-2 py-1 border rounded" value={test.flynn_region} onChange={e=>setTest(t=>({...t, flynn_region:e.target.value}))} /></div>
+        </div>
+
+        <label className="inline-flex items-center gap-2 mb-3">
+          <input type="checkbox" checked={test.respectFilters} onChange={e=>setTest(t=>({...t, respectFilters:e.target.checked}))}/>
+          <span>Respect filters (Min M & BBox)</span>
+        </label>
+
+        <div className="flex gap-3">
+          <button className="px-3 py-2 rounded border bg-black text-white" onClick={sendTest}>
+            Send Test
+          </button>
+          <button className="px-3 py-2 rounded border" onClick={()=>{
+            setTest({
+              mag: Math.max(3, Number(s.minMag) + 0.5),
+              magtype: 'Mw',
+              depth: 10,
+              lat: Number(midLat.toFixed(2)),
+              lon: Number(midLon.toFixed(2)),
+              flynn_region: s.country === 'CustomBBox' ? 'CUSTOM' : (s.country.toUpperCase() as string),
+              respectFilters: true
+            })
+          }}>
+            Reset Test Fields
+          </button>
+        </div>
+
+        <div className="mt-2 text-gray-500 text-xs">
+          The overlay listens on a BroadcastChannel and will show this synthetic alert. If “Respect filters” is on, the test must pass your Min Magnitude and fall within the selected BBox.
         </div>
       </section>
 

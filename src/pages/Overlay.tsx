@@ -15,6 +15,19 @@ function gradForMag(m: number) {
   return 'from-rose-400 to-rose-500'
 }
 
+type TestMsg = {
+  type: 'test'
+  payload: {
+    mag: number
+    magtype: string
+    depth: number
+    lat: number
+    lon: number
+    flynn_region: string
+    respectFilters: boolean
+  }
+}
+
 export default function Overlay() {
   const [cfg, setCfg] = useState(loadSettings)
   const [alert, setAlert] = useState<EmscProps | null>(null)
@@ -22,13 +35,39 @@ export default function Overlay() {
   const q = useQuery()
   const size = Math.max(400, Number(q.get('size') ?? 800)) // default 800
 
-  // keep cfg synced with settings
+  // keep cfg synced with settings & handle tests
   useEffect(() => {
-    const handler = (e: MessageEvent) => { if ((e.data as any)?.type === 'config:update') setCfg(loadSettings()) }
+    const handler = (e: MessageEvent) => {
+      const data = e.data as any
+      if (data?.type === 'config:update') {
+        setCfg(loadSettings())
+      } else if (data?.type === 'test') {
+        const t = (data as TestMsg).payload
+        const p: EmscProps = {
+          unid: 'TEST-' + Date.now(),
+          time: new Date().toISOString(),
+          lat: Number(t.lat),
+          lon: Number(t.lon),
+          mag: Number(t.mag),
+          magtype: t.magtype,
+          depth: Number(t.depth),
+          flynn_region: t.flynn_region || 'TEST'
+        }
+        if (t.respectFilters) {
+          const lat = p.lat, lon = p.lon, mag = p.mag
+          const b = cfg.bbox
+          if (mag >= cfg.minMag && lat >= b.latMin && lat <= b.latMax && lon >= b.lonMin && lon <= b.lonMax) {
+            setAlert(p)
+          }
+        } else {
+          setAlert(p)
+        }
+      }
+    }
     chan.addEventListener('message', handler)
     window.addEventListener('storage', () => setCfg(loadSettings()))
     return () => { chan.removeEventListener('message', handler as any) }
-  }, [])
+  }, [cfg])
 
   // sound (relative or absolute)
   const soundSrc = useMemo(() => {
