@@ -18,7 +18,7 @@ type TestMsg = {
   }
 }
 
-/** Red gradient by magnitude (all variants are "emergency" themed) */
+/** emergency red gradient */
 function redGradient(m: number) {
   if (m >= 7.5) return 'from-red-700 via-red-600 to-red-500'
   if (m >= 6.5) return 'from-red-600 via-red-500 to-rose-500'
@@ -26,14 +26,24 @@ function redGradient(m: number) {
   return 'from-rose-500 via-red-500 to-rose-400'
 }
 
+/** build an asset URL that respects Vite base on GitHub Pages */
+function asset(url: string) {
+  try {
+    // import.meta.env.BASE_URL ends with a trailing slash
+    return new URL(url, import.meta.env.BASE_URL).href
+  } catch {
+    return url
+  }
+}
+
 export default function Overlay() {
   const [cfg, setCfg] = useState(loadSettings)
   const [alert, setAlert] = useState<EmscProps | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const q = useQuery()
-  const size = Math.max(400, Number(q.get('size') ?? 800)) // default 800
+  const size = Math.max(400, Number(q.get('size') ?? 800)) // only the popup bounds; background stays transparent
 
-  // keep cfg synced w/ settings + handle tests
+  // sync settings + handle test messages
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const data = e.data as any
@@ -68,13 +78,16 @@ export default function Overlay() {
     return () => { chan.removeEventListener('message', handler as any) }
   }, [cfg])
 
-  // Resolve sound (relative or absolute)
+  // resolve sound: settings value or default asset
   const soundSrc = useMemo(() => {
-    const url = (cfg.soundUrl || 'assets/default_alert.mp3').trim()
-    try { return new URL(url, document.location.href).href } catch { return url }
+    const custom = (cfg.soundUrl || '').trim()
+    if (custom) {
+      try { return new URL(custom, document.location.href).href } catch { return custom }
+    }
+    return asset('assets/default_alert.mp3')
   }, [cfg.soundUrl])
 
-  // Connect to EMSC
+  // EMSC
   useEffect(() => {
     return connectEMSC((p) => {
       const b = cfg.bbox
@@ -86,28 +99,33 @@ export default function Overlay() {
     })
   }, [cfg])
 
-  // Play (restart) audio for each alert
+  // play (restart) audio per alert
   useEffect(() => {
     if (!alert || !cfg.beep) return
     const a = audioRef.current
     if (!a) return
     try {
-      // stop old sound and restart from 0
       a.pause()
       a.currentTime = 0
-      // Reloading src ensures any quick back-to-back plays start clean
-      a.src = soundSrc
+      a.src = soundSrc // ensure fresh start, works on OBS + Pages
       void a.play().catch(() => {})
     } catch { /* ignore */ }
   }, [alert, cfg.beep, soundSrc])
 
-  /** Replace the current alert with a new one (remove old immediately) */
+  // replace old alert immediately
   function showNewAlert(p: EmscProps) {
-    // remove old first so the new one appears "on top" cleanly
     setAlert(null)
-    // slight microtask delay to let fade-out (if any) apply; visually instant in OBS
     setTimeout(() => setAlert(p), 0)
   }
+
+  // auto dismiss
+  useEffect(() => {
+    if (!alert) return
+    const mag = Number(alert.mag ?? 0)
+    const keep = mag >= 7 ? 15000 : mag >= 6 ? 12000 : 9000
+    const t = setTimeout(() => setAlert(null), keep)
+    return () => clearTimeout(t)
+  }, [alert])
 
   // UI data
   const mag = Number(alert?.mag ?? 0)
@@ -116,115 +134,103 @@ export default function Overlay() {
   const title = alert ? `M${mag.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
   const sub   = alert ? `${alert.flynn_region ?? 'Region'} • ${alert.depth ?? '?'} km` : ''
   const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
-  const isStrong = mag >= 6
-
-  // auto dismiss after N sec; since new alert replaces old, this timer is sufficient
-  useEffect(() => {
-    if (!alert) return
-    const keep = mag >= 7 ? 17000 : mag >= 6 ? 14000 : 10000
-    const t = setTimeout(() => setAlert(null), keep)
-    return () => clearTimeout(t)
-  }, [alert, mag])
+  const strong = mag >= 6
 
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
-      {/* STAGE: fills the given size */}
-      <div
-        className="fixed top-0 left-0"
-        style={{ width: size, height: size }}
-      >
-        {/* FILLING OVERLAY — emergency red theme */}
-        <div className="relative h-full w-full text-white">
-          {/* soft red gradient glow background (transparent edges to keep global transparency) */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${grad} opacity-40 blur-2xl`} />
-          {/* inner glass panel that fills all space */}
-          <div className="absolute inset-0 p-6 flex flex-col">
-            {/* headline banner */}
-            <div
-              className="flex items-center gap-3 w-full rounded-xl border border-red-400/50 bg-red-600/30 backdrop-blur-md shadow-glass px-4 py-3
-                         translate-y-[-6px] opacity-0 animate-[fadein_.35s_ease-out_forwards]"
-              style={{ pointerEvents: 'auto' }}
-            >
-              <div className="h-8 w-8 rounded-full bg-red-500/90 flex items-center justify-center font-bold">!</div>
-              <div className="text-lg font-semibold tracking-tight">
-                EARTHQUAKE ALERT
-              </div>
-              {mag ? (
-                <div className="ml-auto text-sm font-semibold px-2 py-1 rounded-md bg-red-500/80 border border-white/20">
-                  M{mag.toFixed(1)}
-                </div>
-              ) : null}
-            </div>
+      {/* popup canvas (transparent outside) */}
+      <div className="fixed top-0 left-0 flex items-center justify-center" style={{ width: size, height: size }}>
+        {/* show nothing when idle to keep overlay fully transparent */}
+        {alert && (
+          <div
+            className="relative w-full h-full text-white"
+            style={{ pointerEvents: 'auto' }}
+          >
+            {/* popup fills the given size, with transparent edges via opacity */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden">
+              {/* subtle red glow background, still transparent overall */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${grad} opacity-25 blur-2xl`} />
 
-            {/* main card — fills remaining space */}
-            <div className="relative mt-4 flex-1 rounded-2xl border border-white/10 bg-[#0b0b0b]/75 backdrop-blur-md shadow-glass overflow-hidden
-                            translate-y-[-4px] opacity-0 animate-[fadein_.4s_ease-out_.08s_forwards]"
-                 style={{ pointerEvents: 'auto' }}>
-              {/* animated emergency frame */}
-              <div className="absolute inset-0 rounded-2xl ring-2 ring-red-400/40" />
-              {isStrong && (
-                <>
-                  <div className="absolute inset-4 rounded-2xl border-2 border-red-300/30 animate-pulse" />
-                  <div className="absolute -inset-8 rounded-[32px] bg-red-500/20 blur-3xl animate-pulse" />
-                </>
-              )}
-
-              {/* content fills */}
-              <div className="relative h-full w-full grid grid-rows-[auto_auto_1fr_auto] gap-3 p-6">
-                {/* title + region */}
-                <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-full bg-red-600 shadow-lg flex items-center justify-center font-bold">
-                    {mag ? mag.toFixed(1) : '—'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[26px] font-semibold leading-tight">{title || 'Awaiting data…'}</div>
-                    {alert && <div className="mt-1 text-sm text-white/90">{sub}</div>}
+              {/* emergency card (centered, fills most of the canvas) */}
+              <div className="absolute inset-0 p-5 flex flex-col">
+                {/* top banner */}
+                <div className="flex items-center gap-3 rounded-xl border border-red-400/50 bg-red-600/30 backdrop-blur-md shadow-glass px-4 py-3
+                                translate-y-[-6px] opacity-0 animate-[fadein_.25s_ease-out_forwards]">
+                  <div className="h-8 w-8 rounded-full bg-red-500/90 flex items-center justify-center font-bold">!</div>
+                  <div className="text-lg font-semibold tracking-tight">EARTHQUAKE ALERT</div>
+                  <div className="ml-auto text-sm font-semibold px-2 py-1 rounded-md bg-red-500/80 border border-white/20">
+                    M{mag.toFixed(1)}
                   </div>
                 </div>
 
-                {/* meta */}
-                <div className="text-xs text-white/75">
-                  {alert ? `${timeStr} • ${coords}` : 'Listening…'}
-                </div>
+                {/* main panel fills */}
+                <div className="relative mt-4 flex-1 rounded-2xl border border-white/10 bg-[#0b0b0b]/80 backdrop-blur-md shadow-glass overflow-hidden
+                                translate-y-[-4px] opacity-0 animate-[fadein_.35s_ease-out_.06s_forwards]">
+                  {/* animated frame for stronger events */}
+                  <div className="absolute inset-0 rounded-2xl ring-2 ring-red-400/40" />
+                  {strong && (
+                    <>
+                      <div className="absolute inset-4 rounded-2xl border-2 border-red-300/30 animate-pulse" />
+                      <div className="absolute -inset-8 rounded-[32px] bg-red-500/20 blur-3xl animate-pulse" />
+                    </>
+                  )}
 
-                {/* big center message */}
-                <div className="flex items-center justify-center">
-                  <div className="text-center">
-                    {alert ? (
-                      <div className="text-red-100/95">
-                        <div className="text-lg font-medium tracking-wide">Shaking reported by EMSC feed</div>
+                  {/* content */}
+                  <div className="relative h-full w-full grid grid-rows-[auto_auto_1fr_auto] gap-3 p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-12 w-12 rounded-full bg-red-600 shadow-lg flex items-center justify-center font-bold">
+                        {mag.toFixed(1)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[26px] font-semibold leading-tight">{title}</div>
+                        <div className="mt-1 text-sm text-white/90">{sub}</div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-white/75">
+                      {timeStr} • {coords}
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <div className="text-center text-red-100/95">
+                        <div className="text-lg font-medium tracking-wide">Emergency notification</div>
                         <div className="text-sm opacity-80 mt-1">Data may update as solutions refine</div>
                       </div>
-                    ) : (
-                      <div className="text-white/60">Waiting for events…</div>
-                    )}
+                    </div>
+
+                    {/* progress shimmer */}
+                    <div className="h-[3px] w-full bg-white/15 overflow-hidden rounded">
+                      <div className="h-full w-1/2 bg-white/35 animate-[shimmer_2.4s_linear_infinite]" />
+                    </div>
+                  </div>
+
+                  {/* dismiss (clickable if OBS interaction is enabled) */}
+                  <div
+                    className="absolute top-3 right-4 text-white/80 hover:text-white cursor-pointer select-none"
+                    onClick={() => setAlert(null)}
+                    title="Dismiss"
+                  >
+                    ✕
                   </div>
                 </div>
-
-                {/* progress shimmer bar */}
-                <div className="h-[3px] w-full bg-white/15 overflow-hidden rounded">
-                  <div className="h-full w-1/2 bg-white/35 animate-[shimmer_2.4s_linear_infinite]" />
-                </div>
               </div>
-
-              {/* manual dismiss (clickable in OBS if you enable interaction) */}
-              {alert && (
-                <div
-                  className="absolute top-3 right-4 text-white/80 hover:text-white cursor-pointer select-none"
-                  onClick={() => setAlert(null)}
-                  title="Dismiss"
-                  style={{ pointerEvents: 'auto' }}
-                >
-                  ✕
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* hidden audio; we force-stop and restart on each alert */}
-      <audio ref={audioRef} src={soundSrc} preload="auto" />
+      {/* hidden audio */}
+      <audio
+        ref={audioRef}
+        src={soundSrc}
+        preload="auto"
+        onError={() => {
+          // Fallback: if custom URL fails, attempt default asset
+          const a = audioRef.current
+          if (a && !cfg.soundUrl) a.src = asset('assets/default_alert.mp3')
+        }}
+      />
+
       <style>{`
         @keyframes fadein { to { opacity: 1; transform: translateY(0); } }
         @keyframes shimmer { 0% { transform: translateX(-100%);} 100% { transform: translateX(200%);} }
