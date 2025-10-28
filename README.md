@@ -18,7 +18,7 @@ Yeni dock ekle:
 - **Ad:** Deprem Uyarı Ayarları  
 - **URL:**
   ```
-  https://anilcan.github.io/deprem-overlay/#/settings
+  https://anilized.github.io/obs-earthquake-overlay/#/settings
   ```
 
 Bu panel üzerinden:
@@ -35,7 +35,7 @@ OBS → **Kaynak Ekle → Tarayıcı (Browser Source)**
 Aşağıdaki URL’yi yapıştır:
 
 ```
-https://anilcan.github.io/deprem-overlay/#/overlay?size=800
+https://anilized.github.io/obs-earthquake-overlay/#/overlay?size=800
 ```
 
 > `size=800` değeri overlay’in kapladığı alanı belirtir.  
