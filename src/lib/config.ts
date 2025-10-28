@@ -15,6 +15,9 @@ export type Settings = {
   minMag: number;
   beep: boolean;
   soundUrl: string; // relative (assets/default_alert.mp3) or https://...
+  // Alert appearance/behavior
+  notifColor: string; // CSS color for notification bar (e.g. #dc2626)
+  displayDurationSec: number; // seconds on screen (0 => auto based on magnitude)
 };
 
 export const CONFIG_KEY = 'emscDockConfigV2';
@@ -26,6 +29,8 @@ export const defaultSettings: Settings = {
   minMag: 3.0,
   beep: true,
   soundUrl: 'assets/default_alert.mp3',
+  notifColor: '#dc2626',
+  displayDurationSec: 8,
 };
 
 export function loadSettings(): Settings {
@@ -51,6 +56,8 @@ export function loadSettings(): Settings {
       minMag: Number(s.minMag ?? defaultSettings.minMag),
       beep: typeof s.beep === 'boolean' ? s.beep : defaultSettings.beep,
       soundUrl: s.soundUrl ?? defaultSettings.soundUrl,
+      notifColor: s.notifColor ?? (s as any).overlayBgColor ?? defaultSettings.notifColor,
+      displayDurationSec: clampRange(Number(s.displayDurationSec ?? defaultSettings.displayDurationSec), 0, 120),
     };
   } catch {
     return defaultSettings;
@@ -60,4 +67,9 @@ export function loadSettings(): Settings {
 export function saveSettings(s: Settings) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(s));
   chan.postMessage({ type: 'config:update' as const });
+}
+
+function clampRange(n: number, min: number, max: number) {
+  if (Number.isNaN(n)) return min;
+  return Math.min(max, Math.max(min, n));
 }

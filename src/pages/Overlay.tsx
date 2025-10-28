@@ -138,14 +138,25 @@ const soundSrc = useMemo(() => {
   useEffect(() => {
     if (!alert) return
     const m = Number(alert.mag ?? 0)
-    const keep = m >= 7 ? 12000 : m >= 6 ? 10000 : 8000
+    const preferred = Number(cfg.displayDurationSec || 0) * 1000
+    const keep = preferred > 0 ? preferred : (m >= 7 ? 12000 : m >= 6 ? 10000 : 8000)
     const t = setTimeout(() => setAlert(null), keep)
     return () => clearTimeout(t)
-  }, [alert])
+  }, [alert, cfg.displayDurationSec])
 
   // UI bits
   const m = Number(alert?.mag ?? 0)
   const theme = magColor(m)
+  // derive gradient from user-selected notification color
+  function hexToRgb(hex: string) {
+    const h = (hex || '').replace('#', '')
+    if (h.length === 3) return { r: parseInt(h[0]+h[0],16), g: parseInt(h[1]+h[1],16), b: parseInt(h[2]+h[2],16) }
+    if (h.length === 6) return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) }
+    return { r: 220, g: 38, b: 38 }
+  }
+  const { r, g, b } = hexToRgb(cfg.notifColor || '#dc2626')
+  const gradFrom = `rgba(${r}, ${g}, ${b}, 0.35)`
+  const gradTo = `rgba(${r}, ${g}, ${b}, 0.28)`
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
   const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
   const title = alert ? `${cityLine || (alert.flynn_region ?? 'Türkiye')} • ${alert.depth ?? '?'} km` : ''
@@ -163,11 +174,11 @@ const soundSrc = useMemo(() => {
               <div
                 className={[
                   'pointer-events-auto w-full text-white rounded-2xl',
-                  'border border-white/25 bg-gradient-to-br backdrop-blur-xl shadow-xl',
-                  `from-[rgba(255,0,0,0.35)] to-[rgba(255,120,120,0.28)]`,
+                  'border border-white/25 backdrop-blur-xl shadow-xl',
                   'opacity-0 translate-y-[-8px] animate-[slideIn_.28s_ease-out_forwards]',
                   theme.ring
                 ].join(' ')}
+                style={{ backgroundImage: `linear-gradient(to bottom right, ${gradFrom}, ${gradTo})` }}
               >
                 <div className="px-5 py-4 flex gap-4 items-center">
                   {/* magnitude badge with color & number */}

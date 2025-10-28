@@ -21,11 +21,13 @@ Yeni dock ekle:
   https://anilized.github.io/obs-earthquake-overlay/#/settings
   ```
 
-Bu panel üzerinden:
-- Minimum büyüklük (`Min Magnitude`)
-- Ses dosyası (`Sound URL`)
-- Beep (aç/kapat)
-- Test uyarısı gönderme
+ Bu panel üzerinden:
+ - Minimum büyüklük (`Min Magnitude`)
+ - Ses dosyası (`Sound URL`)
+ - Beep (aç/kapat)
+ - Bildirim rengi
+ - Bildirim ekranda kalma süresi (sn)
+ - Test uyarısı gönderme
 
 ayarlarını yönetebilirsin.
 

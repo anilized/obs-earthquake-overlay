@@ -217,6 +217,33 @@ export default function Settings() {
         <div className="mt-1 text-gray-500 text-xs">
           You can put .mp3 or .wav link as an alternative (https://testdomain.com/test_alert.wav).
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="min-w-[120px] font-semibold">Notification Duration</label>
+          <input
+            className="w-28 px-2 py-1 border rounded"
+            type="number" min={0} max={120} step={1}
+            value={s.displayDurationSec}
+            onChange={(e) => update('displayDurationSec', Number(e.target.value))}
+            onBlur={(e) => {
+              const v = Number(e.target.value)
+              if (isNaN(v) || v < 0) toast.show('error', 'Enter 0 or a positive number of seconds.')
+              if (v === 0) toast.show('info', '0 = auto duration based on magnitude.')
+            }}
+          />
+          <span className="text-gray-600 text-sm">seconds (0 = auto)</span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <label className="min-w-[120px] font-semibold">Notification Color</label>
+          <input
+            aria-label="Notification Color"
+            className="h-8 w-12 p-0 border rounded"
+            type="color"
+            value={s.notifColor}
+            onChange={(e) => update('notifColor', e.target.value as any)}
+          />
+          <span className="text-gray-600 text-sm">Used for the alert bar gradient.</span>
+        </div>
       </section>
 
       {/* TEST */}
