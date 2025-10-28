@@ -147,8 +147,8 @@ const soundSrc = useMemo(() => {
   const m = Number(alert?.mag ?? 0)
   const theme = magColor(m)
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
-  const title = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const subtitle = alert ? `${cityLine || (alert.flynn_region ?? 'Türkiye')} • ${alert.depth ?? '?'} km` : ''
+  const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
+  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Türkiye')} • ${alert.depth ?? '?'} km` : ''
   const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
 
   return (
