@@ -146,13 +146,10 @@ export default function Settings() {
 
   return (
     <div className="p-4 text-[13px] leading-5">
-      <h2 className="text-xl font-semibold mb-3">EMSC Overlay — Settings</h2>
+      <h2 className="text-xl font-semibold mb-3">Earthquake Overlay — Settings</h2>
 
       {/* SETTINGS */}
       <section className="border border-gray-300 rounded-xl p-4 mb-4">
-        <div className="text-gray-600 mb-3">
-          Country fixed to Turkey (no bbox customization).
-        </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <label className="min-w-[120px] font-semibold">Min Magnitude</label>
@@ -166,7 +163,7 @@ export default function Settings() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-3">
-          <label className="min-w-[120px] font-semibold">Beep on Alert</label>
+          <label className="min-w-[120px] font-semibold">Alert Sound</label>
           <input
             type="checkbox"
             checked={s.beep}
@@ -214,7 +211,7 @@ export default function Settings() {
             value={s.notifColor}
             onChange={(e) => update('notifColor', e.target.value as any)}
           />
-          <span className="text-gray-600 text-sm">Used for the alert bar gradient.</span>
+          <span className="text-gray-600 text-sm">alert bar gradient</span>
         </div>
       </section>
 
@@ -235,7 +232,7 @@ export default function Settings() {
 
         <label className="inline-flex items-center gap-2 mb-3">
           <input type="checkbox" checked={test.respectFilters} onChange={e=>setTest(t=>({...t, respectFilters:e.target.checked}))}/>
-          <span>Respect filters (Min M & BBox)</span>
+          <span>Respect filters (Min Magnitude)</span>
         </label>
 
         <div className="flex gap-3">
