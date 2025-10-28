@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { BOXES, defaultSettings, loadSettings, saveSettings, chan } from '../lib/config'
+import React, { useEffect, useState } from 'react'
+import { BOXES, defaultSettings, loadSettings, saveSettings, chan, applyTheme } from '../lib/config'
 
 type TestForm = {
   mag: number
@@ -83,6 +83,7 @@ function Toast({ open, kind, text, onClose }: { open: boolean; kind: ToastKind; 
 export default function Settings() {
   const [s, setS] = useState(loadSettings)
   const toast = useToast()
+  useEffect(() => { applyTheme(s.theme) }, [s.theme])
 
   // Fixed to Turkey
   const bboxTurkey = BOXES.Turkey
@@ -145,121 +146,164 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-4 text-[13px] leading-5">
-      <h2 className="text-xl font-semibold mb-3">Earthquake Overlay — Settings</h2>
+    <div className="p-6 text-[13px] leading-5 text-gray-900 dark:text-gray-100 bg-white dark:bg-neutral-900 min-h-full">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Earthquake Overlay — Settings</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Tune how alerts look and behave during your stream.</p>
+        </div>
 
       {/* SETTINGS */}
-      <section className="border border-gray-300 rounded-xl p-4 mb-4">
+      <section className="border border-gray-200 dark:border-gray-800 rounded-2xl p-5 mb-5 bg-white/80 dark:bg-neutral-900/80 shadow-sm">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-4">Preferences</h3>
 
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <label className="min-w-[120px] font-semibold">Min Magnitude</label>
-          <input
-            className="w-28 px-2 py-1 border rounded"
-            type="number" step="0.1"
-            value={s.minMag}
-            onChange={(e) => update('minMag', Number(e.target.value))}
-            onBlur={(e) => isNaN(Number(e.target.value)) ? toast.show('error', 'Please enter a valid number.') : void 0}
-          />
-        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Theme</label>
+            <div className="sm:col-span-2 flex items-center gap-4">
+              <label className="inline-flex items-center gap-2">
+                <input className="accent-indigo-600" type="radio" name="theme" checked={s.theme==='light'} onChange={()=>setS({ ...s, theme: 'light' as any })} />
+                <span>Light</span>
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input className="accent-indigo-600" type="radio" name="theme" checked={s.theme==='dark'} onChange={()=>setS({ ...s, theme: 'dark' as any })} />
+                <span>Dark</span>
+              </label>
+            </div>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <label className="min-w-[120px] font-semibold">Alert Sound</label>
-          <input
-            type="checkbox"
-            checked={s.beep}
-            onChange={(e) => { update('beep', e.target.checked); toast.show('info', e.target.checked ? 'Beep enabled.' : 'Beep disabled.') }}
-          />
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Min Magnitude</label>
+            <div className="sm:col-span-2">
+              <input
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                type="number" step="0.1"
+                value={s.minMag}
+                onChange={(e) => update('minMag', Number(e.target.value))}
+                onBlur={(e) => isNaN(Number(e.target.value)) ? toast.show('error', 'Please enter a valid number.') : void 0}
+              />
+            </div>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="min-w-[120px] font-semibold">Sound URL</label>
-          <input
-            className="min-w-[360px] px-2 py-1 border rounded"
-            placeholder="assets/default_alert.mp3 or https://…"
-            value={s.soundUrl}
-            onChange={(e) => update('soundUrl', e.target.value)}
-            onBlur={() => {
-              if (!s.soundUrl.trim()) toast.show('info', 'Using default: assets/default_alert.mp3')
-            }}
-          />
-        </div>
-        <div className="mt-1 text-gray-500 text-xs">
-          You can put .mp3 or .wav link as an alternative (https://testdomain.com/test_alert.wav).
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="min-w-[120px] font-semibold">Notification Duration</label>
-          <input
-            className="w-28 px-2 py-1 border rounded"
-            type="number" min={0} max={120} step={1}
-            value={s.displayDurationSec}
-            onChange={(e) => update('displayDurationSec', Number(e.target.value))}
-            onBlur={(e) => {
-              const v = Number(e.target.value)
-              if (isNaN(v) || v < 0) toast.show('error', 'Enter 0 or a positive number of seconds.')
-              if (v === 0) toast.show('info', '0 = auto duration based on magnitude.')
-            }}
-          />
-          <span className="text-gray-600 text-sm">seconds (0 = auto)</span>
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Alert Sound</label>
+            <div className="sm:col-span-2">
+              <label className="inline-flex items-center gap-2">
+                <input className="accent-indigo-600" type="checkbox" checked={s.beep} onChange={(e) => { update('beep', e.target.checked); toast.show('info', e.target.checked ? 'Beep enabled.' : 'Beep disabled.') }} />
+                <span>Enable sound on alert</span>
+              </label>
+            </div>
+          </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="min-w-[120px] font-semibold">Notification Color</label>
-          <input
-            aria-label="Notification Color"
-            className="h-8 w-12 p-0 border rounded"
-            type="color"
-            value={s.notifColor}
-            onChange={(e) => update('notifColor', e.target.value as any)}
-          />
-          <span className="text-gray-600 text-sm">alert bar gradient</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Sound URL</label>
+            <div className="sm:col-span-2">
+              <input
+                className="w-full max-w-xl px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                placeholder="assets/default_alert.mp3 or https://…"
+                value={s.soundUrl}
+                onChange={(e) => update('soundUrl', e.target.value)}
+                onBlur={() => { if (!s.soundUrl.trim()) toast.show('info', 'Using default: assets/default_alert.mp3') }}
+              />
+              <div className="mt-1 text-gray-500 dark:text-gray-400 text-xs">Use .mp3 or .wav. Remote URLs allowed.</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Notification Duration</label>
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <input
+                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+                type="number" min={0} max={120} step={1}
+                value={s.displayDurationSec}
+                onChange={(e) => update('displayDurationSec', Number(e.target.value))}
+                onBlur={(e) => {
+                  const v = Number(e.target.value)
+                  if (isNaN(v) || v < 0) toast.show('error', 'Enter 0 or a positive number of seconds.')
+                  if (v === 0) toast.show('info', '0 = auto duration based on magnitude.')
+                }}
+              />
+              <span className="text-gray-600 dark:text-gray-400 text-sm">seconds (0 = auto)</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Notification Color</label>
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <input
+                aria-label="Notification Color"
+                className="h-9 w-12 p-1 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800"
+                type="color"
+                value={s.notifColor}
+                onChange={(e) => update('notifColor', e.target.value as any)}
+              />
+              <span className="text-gray-600 dark:text-gray-400 text-sm">applies to the alert bar gradient</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* TEST */}
-      <section className="border border-gray-300 rounded-xl p-4 mb-4">
-        <h3 className="font-semibold mb-2">Test Alert</h3>
+      <section className="border border-gray-200 dark:border-gray-800 rounded-2xl p-5 mb-6 bg-white/80 dark:bg-neutral-900/80 shadow-sm">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-4">Test Alert</h3>
 
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <div>Magnitude <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={test.mag} onChange={e=>setTest(t=>({...t, mag:Number(e.target.value)}))} /></div>
-          <div>Depth <input className="w-20 px-2 py-1 border rounded" type="number" step="1" value={test.depth} onChange={e=>setTest(t=>({...t, depth:Number(e.target.value)}))} /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div className="sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Magnitude</label>
+            <input className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" type="number" step="0.1" value={test.mag} onChange={e=>setTest(t=>({...t, mag:Number(e.target.value)}))} />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Depth</label>
+            <input className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" type="number" step="1" value={test.depth} onChange={e=>setTest(t=>({...t, depth:Number(e.target.value)}))} />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <div>Lat <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lat} onChange={e=>setTest(t=>({...t, lat:Number(e.target.value)}))} /></div>
-          <div>Lon <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lon} onChange={e=>setTest(t=>({...t, lon:Number(e.target.value)}))} /></div>
-          <div>Region <input className="w-44 px-2 py-1 border rounded bg-gray-100" value={test.flynn_region} readOnly /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div className="sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Latitude</label>
+            <input className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" type="number" step="0.01" value={test.lat} onChange={e=>setTest(t=>({...t, lat:Number(e.target.value)}))} />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Longitude</label>
+            <input className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" type="number" step="0.01" value={test.lon} onChange={e=>setTest(t=>({...t, lon:Number(e.target.value)}))} />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Region</label>
+            <input className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-200" value={test.flynn_region} readOnly />
+          </div>
         </div>
 
-        <label className="inline-flex items-center gap-2 mb-3">
-          <input type="checkbox" checked={test.respectFilters} onChange={e=>setTest(t=>({...t, respectFilters:e.target.checked}))}/>
-          <span>Respect filters (Min Magnitude)</span>
+        <label className="inline-flex items-center gap-2 mb-4">
+          <input className="accent-indigo-600" type="checkbox" checked={test.respectFilters} onChange={e=>setTest(t=>({...t, respectFilters:e.target.checked}))}/>
+          <span className="text-sm text-gray-800 dark:text-gray-200">Respect filters (Min Magnitude)</span>
         </label>
 
         <div className="flex gap-3">
-          <button className="px-3 py-2 rounded border bg-black text-white" onClick={sendTest}>
+          <button className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" onClick={sendTest}>
             Send Test
           </button>
-          <button className="px-3 py-2 rounded border" onClick={resetTests}>
+          <button className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-neutral-800" onClick={resetTests}>
             Reset Test Fields
           </button>
         </div>
 
-        <div className="mt-2 text-gray-500 text-xs">
-          The overlay listens on a BroadcastChannel and will show this synthetic alert.
+        <div className="mt-3 text-gray-500 dark:text-gray-400 text-xs">
+          Overlay listens on a BroadcastChannel and shows this synthetic alert.
         </div>
       </section>
 
       <div className="flex gap-3">
-        <button className="px-3 py-2 rounded border bg-black text-white" onClick={onSave}>
+        <button className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" onClick={onSave}>
           Save
         </button>
-        <button className="px-3 py-2 rounded border" onClick={resetDefaults}>
+        <button className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-neutral-800" onClick={resetDefaults}>
           Reset to defaults
         </button>
       </div>
 
       {/* feedback toast */}
       <Toast open={toast.open} kind={toast.kind} text={toast.text} onClose={toast.hide} />
+      </div>
     </div>
   )
 }

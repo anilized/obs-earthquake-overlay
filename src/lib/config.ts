@@ -5,6 +5,8 @@ export const BOXES: Record<Country, BBox> = {
   Turkey:   { latMin: 35, latMax: 43, lonMin: 25, lonMax: 45 },
 };
 
+export type Theme = 'light' | 'dark'
+
 export type Settings = {
   minMag: number;
   beep: boolean;
@@ -12,6 +14,7 @@ export type Settings = {
   // Alert appearance/behavior
   notifColor: string; // CSS color for notification bar (e.g. #dc2626)
   displayDurationSec: number; // seconds on screen (0 => auto based on magnitude)
+  theme: Theme;
 };
 
 export const CONFIG_KEY = 'emscDockConfigV2';
@@ -23,6 +26,7 @@ export const defaultSettings: Settings = {
   soundUrl: 'assets/default_alert.mp3',
   notifColor: '#dc2626',
   displayDurationSec: 8,
+  theme: 'light',
 };
 
 export function loadSettings(): Settings {
@@ -37,6 +41,7 @@ export function loadSettings(): Settings {
       soundUrl: s.soundUrl ?? defaultSettings.soundUrl,
       notifColor: s.notifColor ?? (s as any).overlayBgColor ?? defaultSettings.notifColor,
       displayDurationSec: clampRange(Number(s.displayDurationSec ?? defaultSettings.displayDurationSec), 0, 120),
+      theme: (s.theme === 'dark' || s.theme === 'light') ? s.theme : defaultSettings.theme,
     };
   } catch {
     return defaultSettings;
@@ -51,4 +56,11 @@ export function saveSettings(s: Settings) {
 function clampRange(n: number, min: number, max: number) {
   if (Number.isNaN(n)) return min;
   return Math.min(max, Math.max(min, n));
+}
+
+export function applyTheme(theme: Theme) {
+  const root = document.documentElement
+  if (!root) return
+  if (theme === 'dark') root.classList.add('dark')
+  else root.classList.remove('dark')
 }
