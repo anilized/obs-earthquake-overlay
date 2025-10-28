@@ -42,9 +42,28 @@ export default function Overlay() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const q = useQuery()
 
-  // Stage size box; popup is centered inside this and fills horizontally
-  const size = Math.max(400, Number(q.get('size') ?? 800))
-  const padding = Number(q.get('pad') ?? 16) // inner horizontal padding inside the stage
+  // Stage sizing and scaling for high-DPI crispness in OBS
+  // If size=auto (or omitted), fill the Browser Source viewport and scale UI accordingly.
+  const sizeParam = q.get('size')
+  const [vw, setVw] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 800)
+  const [vh, setVh] = useState<number>(typeof window !== 'undefined' ? window.innerHeight : 600)
+  useEffect(() => {
+    const onResize = () => { setVw(window.innerWidth); setVh(window.innerHeight) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  const autoStage = !sizeParam || sizeParam === 'auto'
+  const stageWidth = autoStage ? vw : Math.max(400, Number(sizeParam))
+  const stageHeight = autoStage ? vh : Math.max(400, Number(sizeParam))
+  const basePad = Number(q.get('pad') ?? 16) // inner horizontal padding inside the stage (logical units)
+  // Scale factor: explicit via ?scale=, otherwise in auto mode scale with viewport width relative to 800 base.
+  const scale = useMemo(() => {
+    const s = Number(q.get('scale'))
+    if (!isNaN(s) && s > 0) return s
+    if (autoStage && vw) return Math.max(0.5, vw / 800)
+    return 1
+  }, [q, autoStage, vw])
+  const padding = Math.round(basePad * scale)
 
   // Always TURKEY bbox (ignore Settings country/bbox)
   const TURKEY_BBOX = BOXES.Turkey
@@ -177,7 +196,7 @@ const soundSrc = useMemo(() => {
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
       {/* Stage box: fixed region of size×size; popup is centered and fills horizontally */}
-      <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
+      <div className="fixed top-0 left-0" style={{ width: stageWidth, height: stageHeight }}>
         {alert && (
           <div className="absolute inset-0 flex items-center justify-center">
             {/* container fills horizontally with padding; transparent outside the toast */}
@@ -192,28 +211,29 @@ const soundSrc = useMemo(() => {
                 ].join(' ')}
                 style={{ backgroundImage: `linear-gradient(to bottom right, ${gradFrom}, ${gradTo})` }}
               >
-                <div className="px-5 py-4 flex gap-4 items-center">
+                <div className="flex items-center" style={{ padding: `${Math.round(16 * scale)}px ${Math.round(20 * scale)}px`, gap: Math.round(16 * scale) }}>
                   {/* magnitude badge with color & number */}
-                  <div className={`shrink-0 h-12 w-12 ${theme.bg} rounded-2xl flex items-center justify-center font-extrabold shadow-md`}>
-                    {m.toFixed(1)}
+                  <div className={`shrink-0 ${theme.bg} rounded-2xl flex items-center justify-center font-extrabold shadow-md`}
+                       style={{ width: Math.round(48 * scale), height: Math.round(48 * scale), borderRadius: Math.round(16 * scale) }}>
+                    <span style={{ fontSize: Math.round(20 * scale), lineHeight: 1 }}>{m.toFixed(1)}</span>
                   </div>
 
                   {/* text column */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-[16px] font-semibold truncate tracking-tight">
+                    <div className="font-semibold truncate tracking-tight" style={{ fontSize: Math.round(16 * scale) }}>
                       {title}
                     </div>
-                    <div className="text-[13px] text-white/95 truncate">
+                    <div className="text-white/95 truncate" style={{ fontSize: Math.round(13 * scale) }}>
                       {subtitle}
                     </div>
-                    <div className="mt-1 text-[12px] text-white/80 truncate">
+                    <div className="text-white/80 truncate" style={{ marginTop: Math.round(4 * scale), fontSize: Math.round(12 * scale) }}>
                       {timeStr} • {coords}
                     </div>
                   </div>
                 </div>
 
                 {/* subtle progress shimmer */}
-                <div className="h-[3px] w-full bg-white/15 overflow-hidden rounded-b-2xl">
+                <div className="w-full bg-white/15 overflow-hidden rounded-b-2xl" style={{ height: Math.max(2, Math.round(3 * scale)) }}>
                   <div className="h-full w-1/2 bg-white/35 animate-[shimmer_2.4s_linear_infinite]" />
                 </div>
               </div>
