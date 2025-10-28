@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react'
-import { BOXES, BBox, defaultSettings, loadSettings, saveSettings, chan } from '../lib/config'
+import { BOXES, defaultSettings, loadSettings, saveSettings, chan } from '../lib/config'
 
 type TestForm = {
   mag: number
-  magtype: string
   depth: number
   lat: number
   lon: number
@@ -85,35 +84,30 @@ export default function Settings() {
   const [s, setS] = useState(loadSettings)
   const toast = useToast()
 
-  // Lock default bbox preview to the chosen country (or custom values)
-  const bboxFromCountry = useMemo(() => {
-    return s.country === 'CustomBBox' ? s.bbox : BOXES[s.country] || BOXES.Turkey
-  }, [s.country, s.bbox])
+  // Fixed to Turkey
+  const bboxTurkey = BOXES.Turkey
 
   const update = <K extends keyof typeof s>(k: K, v: (typeof s)[K]) => setS({ ...s, [k]: v })
-  const setBBox = (p: Partial<BBox>) => update('bbox', { ...s.bbox, ...p })
 
   const onSave = () => {
     const payload = {
       ...s,
       minMag: Number(s.minMag) || 0,
-      bbox: s.country === 'CustomBBox' ? s.bbox : (BOXES[s.country] || BOXES.Turkey),
     }
     saveSettings(payload)
     toast.show('success', 'Saved ✓ Settings updated.')
   }
 
   // --- TEST FORM (prefill center of bbox) ---
-  const midLat = (bboxFromCountry.latMin + bboxFromCountry.latMax) / 2
-  const midLon = (bboxFromCountry.lonMin + bboxFromCountry.lonMax) / 2
+  const midLat = (bboxTurkey.latMin + bboxTurkey.latMax) / 2
+  const midLon = (bboxTurkey.lonMin + bboxTurkey.lonMax) / 2
 
   const [test, setTest] = useState<TestForm>({
     mag: Math.max(3, Number(s.minMag) + 0.5),
-    magtype: 'Mw',
     depth: 10,
     lat: Number(midLat.toFixed(2)),
     lon: Number(midLon.toFixed(2)),
-    flynn_region: s.country === 'CustomBBox' ? 'CUSTOM' : (s.country.toUpperCase() as string),
+    flynn_region: 'TURKEY',
     respectFilters: true
   })
 
@@ -126,6 +120,7 @@ export default function Settings() {
         depth: Number(test.depth),
         lat: Number(test.lat),
         lon: Number(test.lon),
+        magtype: 'Mw',
       }
     })
     toast.show('info', 'Test alert sent → Check the Overlay.')
@@ -134,11 +129,10 @@ export default function Settings() {
   const resetTests = () => {
     setTest({
       mag: Math.max(3, Number(s.minMag) + 0.5),
-      magtype: 'Mw',
       depth: 10,
       lat: Number(midLat.toFixed(2)),
       lon: Number(midLon.toFixed(2)),
-      flynn_region: s.country === 'CustomBBox' ? 'CUSTOM' : (s.country.toUpperCase() as string),
+      flynn_region: 'TURKEY',
       respectFilters: true
     })
     toast.show('success', 'Test fields reset.')
@@ -156,31 +150,9 @@ export default function Settings() {
 
       {/* SETTINGS */}
       <section className="border border-gray-300 rounded-xl p-4 mb-4">
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <label className="min-w-[120px] font-semibold">Country</label>
-          <select
-            className="px-2 py-1 border rounded"
-            value={s.country}
-            onChange={(e) => update('country', e.target.value as any)}
-          >
-            {Object.keys(BOXES).map(c => <option key={c}>{c}</option>)}
-            <option>CustomBBox</option>
-          </select>
+        <div className="text-gray-600 mb-3">
+          Country fixed to Turkey (no bbox customization).
         </div>
-
-        {s.country === 'CustomBBox' ? (
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            <label className="min-w-[120px] font-semibold">Custom BBox</label>
-            <div>latMin <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.latMin} onChange={(e)=>setBBox({latMin:Number(e.target.value)})} /></div>
-            <div>latMax <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.latMax} onChange={(e)=>setBBox({latMax:Number(e.target.value)})} /></div>
-            <div>lonMin <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.lonMin} onChange={(e)=>setBBox({lonMin:Number(e.target.value)})} /></div>
-            <div>lonMax <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.lonMax} onChange={(e)=>setBBox({lonMax:Number(e.target.value)})} /></div>
-          </div>
-        ) : (
-          <div className="text-gray-600 mb-1">
-            BBox: {bboxFromCountry.latMin}–{bboxFromCountry.latMax} / {bboxFromCountry.lonMin}–{bboxFromCountry.lonMax}
-          </div>
-        )}
 
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <label className="min-w-[120px] font-semibold">Min Magnitude</label>
@@ -252,14 +224,13 @@ export default function Settings() {
 
         <div className="flex flex-wrap items-center gap-3 mb-2">
           <div>Magnitude <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={test.mag} onChange={e=>setTest(t=>({...t, mag:Number(e.target.value)}))} /></div>
-          <div>Type <input className="w-20 px-2 py-1 border rounded" value={test.magtype} onChange={e=>setTest(t=>({...t, magtype:e.target.value}))} /></div>
           <div>Depth <input className="w-20 px-2 py-1 border rounded" type="number" step="1" value={test.depth} onChange={e=>setTest(t=>({...t, depth:Number(e.target.value)}))} /></div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-2">
           <div>Lat <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lat} onChange={e=>setTest(t=>({...t, lat:Number(e.target.value)}))} /></div>
           <div>Lon <input className="w-24 px-2 py-1 border rounded" type="number" step="0.01" value={test.lon} onChange={e=>setTest(t=>({...t, lon:Number(e.target.value)}))} /></div>
-          <div>Region <input className="w-44 px-2 py-1 border rounded" value={test.flynn_region} onChange={e=>setTest(t=>({...t, flynn_region:e.target.value}))} /></div>
+          <div>Region <input className="w-44 px-2 py-1 border rounded bg-gray-100" value={test.flynn_region} readOnly /></div>
         </div>
 
         <label className="inline-flex items-center gap-2 mb-3">

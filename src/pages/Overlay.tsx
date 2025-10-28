@@ -130,6 +130,7 @@ const soundSrc = useMemo(() => {
       a.pause()
       a.currentTime = 0
       a.src = soundSrc
+      a.loop = true
       void a.play().catch(() => {})
     } catch {}
   }, [alert, cfg.beep, soundSrc])
@@ -141,8 +142,19 @@ const soundSrc = useMemo(() => {
     const preferred = Number(cfg.displayDurationSec || 0) * 1000
     const keep = preferred > 0 ? preferred : (m >= 7 ? 12000 : m >= 6 ? 10000 : 8000)
     const t = setTimeout(() => setAlert(null), keep)
-    return () => clearTimeout(t)
+    const stop = setTimeout(() => {
+      const a = audioRef.current
+      if (a) { try { a.loop = false; a.pause() } catch {} }
+    }, keep)
+    return () => { clearTimeout(t); clearTimeout(stop) }
   }, [alert, cfg.displayDurationSec])
+
+  // stop audio when alert disappears (manual/early)
+  useEffect(() => {
+    if (alert) return
+    const a = audioRef.current
+    if (a) { try { a.loop = false; a.pause() } catch {} }
+  }, [alert])
 
   // UI bits
   const m = Number(alert?.mag ?? 0)
@@ -158,8 +170,8 @@ const soundSrc = useMemo(() => {
   const gradFrom = `rgba(${r}, ${g}, ${b}, 0.35)`
   const gradTo = `rgba(${r}, ${g}, ${b}, 0.28)`
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
-  const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Türkiye')} • ${alert.depth ?? '?'} km` : ''
+  const subtitle = alert ? `M${m.toFixed(1)} Mw` : ''
+  const title = alert ? `${cityLine || 'TURKEY'} • ${alert.depth ?? '?'} km` : ''
   const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
 
   return (
