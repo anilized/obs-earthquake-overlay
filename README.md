@@ -106,3 +106,18 @@ VITE_EMSC_WS_URL=wss://www.seismicportal.eu/standing_order/websocket
 ```
 
 Gerekirse geliştirme sırasında farklı bir WS adresi verebilirsin.
+
+---
+
+## Vercel Password Protection
+
+Bu projeyi Vercel üzerinde şifre ile korumak için Vercel’in yerleşik Password Protection özelliğini kullanın (Panel → Project → Settings → Protection).
+
+- Vercel Dashboard → Project → Settings → Protection
+- “Password Protection” özelliğini etkinleştir
+- Kullanıcı adı ve şifreyi tanımla (Preview ve/veya Production için)
+- Kaydet ve yeniden dağıtımlar için korumayı doğrula
+
+Notlar
+- Bu özellik Vercel tarafında yönetilir; repoda ek yapılandırma gerekmez.
+- Yalnızca `/admin` yolu için koruma isterseniz Vercel’in Path Protection özelliğini kullanın. Alternatif olarak, talep edersen kısmi koruma için bir Edge/Function tabanlı Basic Auth akışı kurgulayabilirim.

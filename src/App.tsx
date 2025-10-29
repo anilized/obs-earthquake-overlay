@@ -8,7 +8,7 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/overlay" replace />} />
+        <Route path="/" element={<Navigate to="/settings" replace />} />
         <Route path="/overlay" element={<Overlay />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin" element={<Admin />} />
