@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { connectEMSC, EmscProps } from '../lib/emsc'
+import { connectEMSC, EmscProps, fromGenericExternal } from '../lib/emsc'
 import { chan, loadSettings, BOXES } from '../lib/config'
 import { reverseGeocodeCity } from '../lib/revgeo'
 import { useLocation } from 'react-router-dom'
@@ -72,6 +72,10 @@ export default function Overlay() {
         } else {
           showNewAlert(p)
         }
+      } else if (data && typeof data === 'object') {
+        // Accept direct external payload: { magnitude, location{latitude,longitude}, depth, timestamp }
+        const p = fromGenericExternal(data)
+        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
       }
     }
     chan.addEventListener('message', handler)
@@ -101,10 +105,11 @@ const soundSrc = useMemo(() => {
 
   // EMSC live
   useEffect(() => {
+    const wsUrl = (cfg.wsUrl || '').trim() || undefined
     return connectEMSC((p) => {
       if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
-    })
-  }, [cfg.minMag])
+    }, wsUrl)
+  }, [cfg.minMag, cfg.wsUrl])
 
   /** Replace current alert with the new one, fetch city and restart audio */
   function showNewAlert(p: EmscProps) {

@@ -15,6 +15,14 @@ export type Settings = {
   minMag: number;
   beep: boolean;
   soundUrl: string; // relative (assets/default_alert.mp3) or https://...
+<<<<<<< Updated upstream
+=======
+  // Alert appearance/behavior
+  notifColor: string; // CSS color for notification bar (e.g. #dc2626)
+  displayDurationSec: number; // seconds on screen (0 => auto based on magnitude)
+  theme: Theme;
+  wsUrl?: string; // optional override for WebSocket endpoint
+>>>>>>> Stashed changes
 };
 
 export const CONFIG_KEY = 'emscDockConfigV2';
@@ -26,6 +34,13 @@ export const defaultSettings: Settings = {
   minMag: 3.0,
   beep: true,
   soundUrl: 'assets/default_alert.mp3',
+<<<<<<< Updated upstream
+=======
+  notifColor: '#dc2626',
+  displayDurationSec: 8,
+  theme: 'dark',
+  wsUrl: '',
+>>>>>>> Stashed changes
 };
 
 export function loadSettings(): Settings {
@@ -51,6 +66,13 @@ export function loadSettings(): Settings {
       minMag: Number(s.minMag ?? defaultSettings.minMag),
       beep: typeof s.beep === 'boolean' ? s.beep : defaultSettings.beep,
       soundUrl: s.soundUrl ?? defaultSettings.soundUrl,
+<<<<<<< Updated upstream
+=======
+      notifColor: s.notifColor ?? (s as any).overlayBgColor ?? defaultSettings.notifColor,
+      displayDurationSec: clampRange(Number(s.displayDurationSec ?? defaultSettings.displayDurationSec), 0, 120),
+      theme: 'dark',
+      wsUrl: typeof s.wsUrl === 'string' ? s.wsUrl : '',
+>>>>>>> Stashed changes
     };
   } catch {
     return defaultSettings;

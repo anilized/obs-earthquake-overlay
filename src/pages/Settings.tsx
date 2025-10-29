@@ -168,6 +168,7 @@ export default function Settings() {
           </select>
         </div>
 
+<<<<<<< Updated upstream
         {s.country === 'CustomBBox' ? (
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <label className="min-w-[120px] font-semibold">Custom BBox</label>
@@ -175,6 +176,12 @@ export default function Settings() {
             <div>latMax <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.latMax} onChange={(e)=>setBBox({latMax:Number(e.target.value)})} /></div>
             <div>lonMin <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.lonMin} onChange={(e)=>setBBox({lonMin:Number(e.target.value)})} /></div>
             <div>lonMax <input className="w-24 px-2 py-1 border rounded" type="number" step="0.1" value={s.bbox.lonMax} onChange={(e)=>setBBox({lonMax:Number(e.target.value)})} /></div>
+=======
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-center">
+            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Theme</label>
+            <div className="sm:col-span-2 text-sm text-gray-800 dark:text-gray-200">Dark mode (always on)</div>
+>>>>>>> Stashed changes
           </div>
         ) : (
           <div className="text-gray-600 mb-1">

@@ -27,8 +27,8 @@ function toProps(maybe: Partial<EmscProps>): EmscProps | null {
   };
 }
 
-export function connectEMSC(onEvent: (p: EmscProps) => void) {
-  const URL = 'wss://www.seismicportal.eu/standing_order/websocket';
+export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: string) {
+  const URL = String(urlOverride || (import.meta as any).env?.VITE_EMSC_WS_URL || 'wss://www.seismicportal.eu/standing_order/websocket');
   let ws: WebSocket | null = null;
   let timer: number | undefined;
   const seen = new Set<string>();
@@ -51,4 +51,45 @@ export function connectEMSC(onEvent: (p: EmscProps) => void) {
 
   open();
   return () => { if (timer) clearTimeout(timer); try { ws?.close(); } catch {} };
+}
+
+// --- Generic external payload support ---
+
+export type GenericExternalMsg = {
+  magnitude: number;
+  location: { latitude: number; longitude: number };
+  depth?: number; // km
+  timestamp: string | number; // ISO string or epoch ms/s
+};
+
+function normalizeTimestamp(ts: string | number): string | null {
+  try {
+    if (typeof ts === 'string') {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) return d.toISOString();
+      const n = Number(ts);
+      if (!isNaN(n)) return normalizeTimestamp(n);
+      return null;
+    }
+    if (typeof ts === 'number') {
+      const ms = ts < 1e12 ? ts * 1000 : ts; // seconds -> ms if needed
+      const d = new Date(ms);
+      if (!isNaN(d.getTime())) return d.toISOString();
+      return null;
+    }
+    return null;
+  } catch { return null }
+}
+
+// Convert your provided shape to internal EmscProps
+export function fromGenericExternal(maybe: Partial<GenericExternalMsg>): EmscProps | null {
+  const mag = Number((maybe as any)?.magnitude);
+  const lat = Number((maybe as any)?.location?.latitude);
+  const lon = Number((maybe as any)?.location?.longitude);
+  const time = normalizeTimestamp((maybe as any)?.timestamp as any) || '';
+  if (Number.isNaN(mag) || Number.isNaN(lat) || Number.isNaN(lon) || !time) return null;
+
+  const depth = (maybe as any)?.depth;
+  const unid = `${time}:${lat.toFixed(3)},${lon.toFixed(3)}`;
+  return { unid, time, lat, lon, mag, depth: typeof depth === 'number' ? depth : undefined };
 }

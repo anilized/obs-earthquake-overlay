@@ -78,3 +78,31 @@ Resmî kurum uyarıları için [AFAD](https://deprem.afad.gov.tr/) veya [Kandill
 
 > **Katkıda bulunmak istersen:**  
 > Pull Request açabilir veya GitHub Issues üzerinden fikirlerini paylaşabilirsin.
+
+---
+
+## .env ile Yapılandırma
+
+Vite ortam değişkenleriyle WS adresini kodu değiştirmeden güncelleyebilirsin.
+
+- `/.env.prod` (build sırasında kullanılır):
+
+```
+VITE_EMSC_WS_URL=wss://www.seismicportal.eu/standing_order/websocket
+```
+
+- Geliştirme için istersen `/.env` de oluşturabilirsin.
+
+Notlar:
+- Build komutu `vite build --mode prod` çalışır ve `.env.prod` dosyasını yükler.
+- Vite yalnızca `VITE_` ile başlayan değişkenleri ön uca aktarır.
+
+### Geliştirme Ortamı (.env.dev)
+
+`npm run dev` komutu `--mode dev` ile çalışır ve `.env.dev` dosyasını yükler:
+
+```
+VITE_EMSC_WS_URL=wss://www.seismicportal.eu/standing_order/websocket
+```
+
+Gerekirse geliştirme sırasında farklı bir WS adresi verebilirsin.
