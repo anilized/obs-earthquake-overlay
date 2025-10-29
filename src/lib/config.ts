@@ -46,7 +46,7 @@ export function loadSettings(): Settings {
       soundUrl: s.soundUrl ?? defaultSettings.soundUrl,
       notifColor: s.notifColor ?? (s as any).overlayBgColor ?? defaultSettings.notifColor,
       displayDurationSec: clampRange(Number(s.displayDurationSec ?? defaultSettings.displayDurationSec), 0, 120),
-      theme: 'dark',
+      theme: (s as any).theme === 'light' || (s as any).theme === 'dark' ? (s as any).theme : defaultSettings.theme,
       wsUrl: typeof s.wsUrl === 'string' ? s.wsUrl : '',
     };
   } catch {

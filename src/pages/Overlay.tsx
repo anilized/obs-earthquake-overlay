@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { connectEMSC, EmscProps, fromGenericExternal } from '../lib/emsc'
 import { chan, loadSettings, BOXES } from '../lib/config'
 import { useLocation } from 'react-router-dom'
@@ -184,55 +184,72 @@ const soundSrc = useMemo(() => {
   const gradTo = `rgba(${r}, ${g}, ${b}, 0.28)`
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
   const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Türkiye')} • ${alert.depth ?? '?'} km` : ''
-  const coords = alert ? `(${Number(alert.lat).toFixed(2)}, ${Number(alert.lon).toFixed(2)})` : ''
+  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Turkiye')} | ${alert.depth ?? '?'} km depth` : ''
+  const coords = alert ? `Lat ${Number(alert.lat).toFixed(2)} | Lon ${Number(alert.lon).toFixed(2)}` : ''
 
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
-      {/* Stage box: fixed region of size×size; popup is centered and fills horizontally */}
+      {/* Stage box: fixed region of size x size; popup is centered and fills horizontally */}
       <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
         {alert && (
           <div className="absolute inset-0 flex items-center justify-center">
             {/* container fills horizontally with padding; transparent outside the toast */}
             <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
-              {/* Emergency bar: iPhone-like but fills width; no black bg */}
-              <div
-                className={[
-                  'pointer-events-auto w-full text-white rounded-2xl',
-                  'border border-white/25 backdrop-blur-xl shadow-xl',
-                  'opacity-0 translate-y-[-8px] animate-[slideIn_.28s_ease-out_forwards]',
-                  theme.ring
-                ].join(' ')}
-                style={{ backgroundImage: `linear-gradient(to bottom right, ${gradFrom}, ${gradTo})` }}
-              >
-                <div className="px-5 py-4 flex gap-4 items-center">
-                  {/* magnitude badge with color & number */}
-                  <div className={`shrink-0 h-12 w-12 ${theme.bg} rounded-2xl flex items-center justify-center font-extrabold shadow-md`}>
-                    {m.toFixed(1)}
+              <div className="relative mx-auto w-full max-w-[420px]">
+                {/* Emergency bar: iPhone-style toast */}
+                <div
+                  className={[
+                    'pointer-events-auto w-full text-white rounded-[26px]',
+                    'border border-white/20 backdrop-blur-2xl shadow-2xl',
+                    'opacity-0 translate-y-[-8px] animate-[slideIn_.28s_ease-out_forwards]',
+                    theme.ring
+                  ].join(' ')}
+                  style={{ backgroundImage: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+                >
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    {/* magnitude badge with color & number */}
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${theme.bg} text-[18px] font-extrabold shadow-md`}
+                      style={{ boxShadow: `0 0 0 6px rgba(${r},${g},${b},0.18), 0 0 24px rgba(${r},${g},${b},0.35)`, animation: 'pulseGlow 1200ms ease-in-out infinite alternate' }}
+                    >
+                      {m.toFixed(1)}
+                    </div>
+
+                    {/* text column */}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-semibold leading-tight tracking-tight">
+                        {title}
+                      </div>
+                      <div className="truncate text-[13px] text-white/90">
+                        {subtitle}
+                      </div>
+                      <div className="mt-1 truncate text-[12px] text-white/80">
+                        {timeStr} | {coords}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* text column */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[16px] font-semibold truncate tracking-tight">
-                      {title}
-                    </div>
-                    <div className="text-[13px] text-white/95 truncate">
-                      {subtitle}
-                    </div>
-                    <div className="mt-1 text-[12px] text-white/80 truncate">
-                      {timeStr} • {coords}
-                    </div>
+                  {/* subtle progress shimmer */}
+                  <div className="h-[3px] w-full overflow-hidden rounded-b-[26px] bg-white/15">
+                    <div className="h-full w-1/2 animate-[shimmer_2.4s_linear_infinite] bg-white/35" />
                   </div>
                 </div>
 
-                {/* subtle progress shimmer */}
-                <div className="h-[3px] w-full bg-white/15 overflow-hidden rounded-b-2xl">
-                  <div className="h-full w-1/2 bg-white/35 animate-[shimmer_2.4s_linear_infinite]" />
-                </div>
+                {/* gentle glow behind the bar (not a full box, keeps transparency) */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    transform: 'scale(1.08, 1.12)',
+                    filter: 'blur(42px)',
+                    opacity: 0.28,
+                    zIndex: -1,
+                    backgroundImage: `linear-gradient(135deg, rgba(${r},${g},${b},0.6), rgba(15,23,42,0.35))`,
+                  }}
+                />
               </div>
-
-              {/* gentle glow behind the bar (not a full box, keeps transparency) */}
-              <div className={`absolute inset-x-${padding} -z-10`} />
             </div>
           </div>
         )}
@@ -256,7 +273,23 @@ const soundSrc = useMemo(() => {
           0% { opacity: 0; transform: translateY(-8px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes pulseGlow {
+          0% { transform: scale(1); filter: brightness(1); }
+          100% { transform: scale(1.06); filter: brightness(1.08); }
+        }
+        @keyframes quake { 
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-3px); }
+          40% { transform: translateX(3px); }
+          60% { transform: translateX(-2px); }
+          80% { transform: translateX(2px); }
+        }
       `}</style>
     </div>
   )
 }
+
+
+
+
+
