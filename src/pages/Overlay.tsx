@@ -195,13 +195,15 @@ const soundSrc = useMemo(() => {
     backgroundImage: `linear-gradient(115deg, rgba(${r}, ${g}, ${b}, 0.95), rgba(15, 23, 42, 0.88))`,
   } as React.CSSProperties
 
+  const cinematicGradient = {
+    backgroundImage: `linear-gradient(360deg, rgba(${r}, ${g}, ${b}, 0.75), rgba(15, 23, 42, 0.92))`,
+  } as React.CSSProperties
+
   const cinematicAlert = (
     <div className="relative mx-auto w-full max-w-[460px]">
       <div
         className="absolute inset-0 -z-10 blur-2xl opacity-70"
-        style={{
-          backgroundImage: `linear-gradient(120deg, rgba(${r},${g},${b},0.75), rgba(12,17,28,0.2))`,
-        }}
+        style={cinematicGradient}
       />
       <div
         className={[
@@ -210,7 +212,7 @@ const soundSrc = useMemo(() => {
           'opacity-0 translate-y-[-14px] animate-[slideIn_.32s_ease-out_forwards]',
           theme.ring,
         ].join(' ')}
-        style={{ backgroundImage: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+        style={cinematicGradient}
       >
         <div
           className="absolute inset-0 opacity-70"
@@ -220,12 +222,11 @@ const soundSrc = useMemo(() => {
           aria-hidden
         />
         <div className="relative px-6 py-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex justify-center mb-4">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
               <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
               Earthquake
             </span>
-            <span className="text-xs font-medium text-white/70">{timeStr || '-'}</span>
           </div>
           <div className="mt-5 flex items-center gap-5">
             <div className="relative flex h-16 w-16 items-center justify-center">
