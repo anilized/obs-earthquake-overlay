@@ -489,7 +489,7 @@ export default function Settings() {
 
           <aside className={`${cardClass} p-6`}>
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
-              On-Stream Preview
+              Stream Preview
             </h2>
             <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-inner shadow-black/30">
               <div className="flex items-center justify-between border-b border-white/5 pb-3 text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
