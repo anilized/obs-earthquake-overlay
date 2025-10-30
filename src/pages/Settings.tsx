@@ -234,23 +234,27 @@ export default function Settings() {
   const previewLat = Number.isFinite(test.lat) ? Number(test.lat).toFixed(2) : '??'
   const previewLon = Number.isFinite(test.lon) ? Number(test.lon).toFixed(2) : '??'
   const previewSubtitle = `M${previewMag.toFixed(1)} Simulation`
-  const previewTitle = `Preview Epicenter | ${previewDepth}`
+  const previewTitle = `Istanbul`
   const previewCoords = `Lat ${previewLat} | Lon ${previewLon}`
   const previewTimestamp = new Date().toLocaleString()
   const previewTone = toneByMagnitude(previewMag)
+  const previewAudioCopy = s.beep ? 'Audio cue armed' : 'Silent mode active'
 
   const { r: previewR, g: previewG, b: previewB } = hexToRgb(s.notifColor || '#dc2626')
   const previewGradient = {
-    backgroundImage: `linear-gradient(135deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.35), rgba(${previewR}, ${previewG}, ${previewB}, 0.28))`,
+    backgroundImage: `linear-gradient(135deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.65), rgba(15, 23, 42, 0.92))`,
+  } as React.CSSProperties
+  const previewPattern = {
+    backgroundImage: `radial-gradient(circle at top left, rgba(${previewR}, ${previewG}, ${previewB}, 0.45), transparent 55%), radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.85), transparent 55%)`,
   } as React.CSSProperties
   const previewGlow = {
     position: 'absolute',
     inset: 0,
     transform: 'scale(1.08, 1.12)',
     filter: 'blur(42px)',
-    opacity: 0.26,
+    opacity: 0.28,
     zIndex: -1,
-    backgroundImage: `linear-gradient(135deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.6), rgba(15, 23, 42, 0.35))`,
+    backgroundImage: `linear-gradient(120deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.75), rgba(12, 17, 28, 0.2))`,
   } as React.CSSProperties
 
   return (
@@ -258,7 +262,7 @@ export default function Settings() {
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-10">
         <header className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="mt-3 text-3xl font-semibold">Overlay Settings</h1>
+            <h1 className="mt-3 text-3xl font-semibold">Notification Settings</h1>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
@@ -333,37 +337,71 @@ export default function Settings() {
               </div>
               <div className="mt-5 flex justify-center">
                 <div className="relative w-full max-w-[420px]">
+                  <div aria-hidden className="pointer-events-none" style={previewGlow} />
                   <div
                     className={[
-                      'pointer-events-none w-full text-white rounded-[26px]',
-                      'border border-white/15 backdrop-blur-2xl shadow-2xl',
+                      'pointer-events-none relative w-full overflow-hidden rounded-[28px]',
+                      'border border-white/18 text-white shadow-[0_20px_45px_rgba(0,0,0,0.45)]',
                       previewTone.ring,
                     ].join(' ')}
                     style={previewGradient}
                   >
-                    <div className="flex items-center gap-4 px-5 py-4">
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${previewTone.badge} text-[18px] font-extrabold shadow-md`}
-                      >
-                        {previewMag.toFixed(1)}
+                    <div className="absolute inset-0 opacity-70" style={previewPattern} aria-hidden />
+                    <div className="relative px-6 py-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
+                          <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
+                          EARTHQUAKE ALERT
+                        </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[15px] font-semibold leading-tight tracking-tight">
-                          {previewTitle}
+
+                      <div className="mt-5 flex items-center gap-5">
+                        <div className="relative flex h-16 w-16 items-center justify-center">
+                          <span
+                            aria-hidden
+                            className="absolute h-full w-full rounded-[22px]"
+                            style={{
+                              background: `radial-gradient(circle, rgba(${previewR}, ${previewG}, ${previewB}, 0.55) 0%, rgba(${previewR}, ${previewG}, ${previewB}, 0) 70%)`,
+                              animation: 'quakePulse 2.4s ease-in-out infinite',
+                            }}
+                          />
+                          <span
+                            className={`relative flex h-16 w-16 flex-col items-center justify-center rounded-[22px] ${previewTone.badge} text-[20px] font-black`}
+                          >
+                            <span>{previewMag.toFixed(1)}</span>
+                            <span className="text-[9px] font-semibold tracking-[0.3em] text-white/80">mag</span>
+                          </span>
                         </div>
-                        <div className="truncate text-[13px] text-white/90">
-                          {previewSubtitle}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[20px] font-semibold leading-tight">{previewTitle}</div>
+                          <div className="mt-1 truncate text-sm text-white/80">{previewSubtitle}</div>
                         </div>
-                        <div className="mt-1 truncate text-[12px] text-white/80">
-                          {previewTimestamp} | {previewCoords}
+                      </div>
+
+                      <div className="mt-6 grid gap-4 text-xs uppercase tracking-[0.22em] text-white/65 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+                          <p className="text-[10px] font-semibold text-white/50">Depth</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{previewDepth}</p>
                         </div>
+                        <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+                          <p className="text-[10px] font-semibold text-white/50">Coordinates</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{previewCoords}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-white/75">
+                        <span>{previewTimestamp}</span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-[6px] w-[6px] animate-[glimmer_2.6s_ease-in-out_infinite] rounded-full bg-white/70" />
+                          {previewAudioCopy}
+                        </span>
                       </div>
                     </div>
-                    <div className="h-[3px] w-full overflow-hidden rounded-b-[26px] bg-white/15">
-                      <div className="h-full w-1/2 animate-[shimmer_2.4s_linear_infinite] bg-white/35" />
+
+                    <div className="relative h-[3px] w-full overflow-hidden bg-white/10">
+                      <div className="absolute inset-0 w-full animate-[sweep_3.2s_linear_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
                     </div>
                   </div>
-                  <div aria-hidden className="pointer-events-none" style={previewGlow} />
                 </div>
               </div>
             </div>
@@ -565,6 +603,25 @@ export default function Settings() {
         </div>
 
         <Toast open={toast.open} kind={toast.kind} text={toast.text} onClose={toast.hide} />
+        <style>{`
+          @keyframes sweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          @keyframes glimmer {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+          }
+          @keyframes quakePulse {
+            0% { transform: scale(1); opacity: 0.65; }
+            50% { transform: scale(1.25); opacity: 0.2; }
+            100% { transform: scale(1.4); opacity: 0; }
+          }
+          @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 18px rgba(248,113,113,0.35); transform: translateY(0); }
+            50% { box-shadow: 0 0 32px rgba(248,113,113,0.6); transform: translateY(-1px); }
+          }
+        `}</style>
       </div>
     </div>
   )

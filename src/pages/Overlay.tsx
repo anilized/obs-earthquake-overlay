@@ -180,11 +180,11 @@ const soundSrc = useMemo(() => {
     return { r: 220, g: 38, b: 38 }
   }
   const { r, g, b } = hexToRgb(cfg.notifColor || '#dc2626')
-  const gradFrom = `rgba(${r}, ${g}, ${b}, 0.35)`
-  const gradTo = `rgba(${r}, ${g}, ${b}, 0.28)`
+  const gradFrom = `rgba(${r}, ${g}, ${b}, 0.65)`
+  const gradTo = `rgba(15, 23, 42, 0.92)`
   const timeStr = alert?.time ? new Date(alert!.time).toLocaleString() : ''
   const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
-  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Turkiye')} | ${alert.depth ?? '?'} km depth` : ''
+  const title = alert ? `${cityLine || (alert.flynn_region ?? 'Turkiye')}` : ''
   const coords = alert ? `Lat ${Number(alert.lat).toFixed(2)} | Lon ${Number(alert.lon).toFixed(2)}` : ''
 
   return (
@@ -192,63 +192,97 @@ const soundSrc = useMemo(() => {
       {/* Stage box: fixed region of size x size; popup is centered and fills horizontally */}
       <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
         {alert && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center py-8">
             {/* container fills horizontally with padding; transparent outside the toast */}
             <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
-              <div className="relative mx-auto w-full max-w-[420px]">
-                {/* Emergency bar: iPhone-style toast */}
+              <div className="relative mx-auto w-full max-w-[460px]">
+                <div
+                  className="absolute inset-0 -z-10 blur-2xl opacity-70"
+                  style={{
+                    backgroundImage: `linear-gradient(120deg, rgba(${r},${g},${b},0.75), rgba(12,17,28,0.2))`,
+                  }}
+                />
                 <div
                   className={[
-                    'pointer-events-auto w-full text-white rounded-[26px]',
-                    'border border-white/20 backdrop-blur-2xl shadow-2xl',
-                    'opacity-0 translate-y-[-8px] animate-[slideIn_.28s_ease-out_forwards]',
-                    theme.ring
+                    'pointer-events-auto relative w-full overflow-hidden rounded-[28px]',
+                    'border border-white/18 text-white shadow-[0_25px_55px_rgba(0,0,0,0.45)]',
+                    'opacity-0 translate-y-[-14px] animate-[slideIn_.32s_ease-out_forwards]',
+                    theme.ring,
                   ].join(' ')}
                   style={{ backgroundImage: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
                 >
-                  <div className="flex items-center gap-4 px-5 py-4">
-                    {/* magnitude badge with color & number */}
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${theme.bg} text-[18px] font-extrabold shadow-md`}
-                      style={{ boxShadow: `0 0 0 6px rgba(${r},${g},${b},0.18), 0 0 24px rgba(${r},${g},${b},0.35)`, animation: 'pulseGlow 1200ms ease-in-out infinite alternate' }}
-                    >
-                      {m.toFixed(1)}
+                  <div
+                    className="absolute inset-0 opacity-70"
+                    style={{
+                      backgroundImage: `radial-gradient(circle at top left, rgba(${r},${g},${b},0.45), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
+                    }}
+                    aria-hidden
+                  />
+                  <div className="relative px-6 py-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
+                        <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
+                        EARTHQUAKE ALERT
+                      </span>
+
                     </div>
 
-                    {/* text column */}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[15px] font-semibold leading-tight tracking-tight">
-                        {title}
+                    <div className="mt-5 flex items-center gap-5">
+                      <div
+                        className="relative flex h-16 w-16 items-center justify-center"
+                      >
+                        <span
+                          className="absolute h-full w-full rounded-[22px]"
+                          style={{
+                            background: `radial-gradient(circle, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0) 70%)`,
+                            animation: 'quakePulse 2.4s ease-in-out infinite',
+                          }}
+                          aria-hidden
+                        />
+                        <span
+                          className={`relative flex h-16 w-16 flex-col items-center justify-center rounded-[22px] ${theme.bg} text-[20px] font-black`}
+                          style={{ boxShadow: `0 20px 45px rgba(${r},${g},${b},0.35)` }}
+                        >
+                          <span>{m.toFixed(1)}</span>
+                          <span className="text-[9px] font-semibold tracking-[0.3em] text-white/80">
+                            mag
+                          </span>
+                        </span>
                       </div>
-                      <div className="truncate text-[13px] text-white/90">
-                        {subtitle}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[20px] font-semibold leading-tight">
+                          {title || 'Awaiting data'}
+                        </div>
+                        <div className="mt-1 truncate text-sm text-white/80">
+                          {subtitle || 'No live alert'}
+                        </div>
                       </div>
-                      <div className="mt-1 truncate text-[12px] text-white/80">
-                        {timeStr} | {coords}
+                    </div>
+
+                    <div className="mt-6 grid gap-4 text-xs uppercase tracking-[0.22em] text-white/65 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+                        <p className="text-[10px] font-semibold text-white/50">Depth</p>
+                        <p className="mt-1 text-sm font-semibold text-white">{alert ? `${alert.depth ?? '?'} km` : '-'}</p>
                       </div>
+                      <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+                        <p className="text-[10px] font-semibold text-white/50">Coordinates</p>
+                        <p className="mt-1 text-sm font-semibold text-white">{coords || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-white/75">
+                      <span>{timeStr || '-'}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-[6px] w-[6px] animate-[glimmer_2.6s_ease-in-out_infinite] rounded-full bg-white/70" />
+                        {cfg.beep ? 'Audio cue armed' : 'Silent mode active'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* subtle progress shimmer */}
-                  <div className="h-[3px] w-full overflow-hidden rounded-b-[26px] bg-white/15">
-                    <div className="h-full w-1/2 animate-[shimmer_2.4s_linear_infinite] bg-white/35" />
+                  <div className="relative h-[3px] w-full overflow-hidden bg-white/10">
+                    <div className="absolute inset-0 w-full animate-[sweep_3.2s_linear_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
                   </div>
                 </div>
-
-                {/* gentle glow behind the bar (not a full box, keeps transparency) */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none"
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    transform: 'scale(1.08, 1.12)',
-                    filter: 'blur(42px)',
-                    opacity: 0.28,
-                    zIndex: -1,
-                    backgroundImage: `linear-gradient(135deg, rgba(${r},${g},${b},0.6), rgba(15,23,42,0.35))`,
-                  }}
-                />
               </div>
             </div>
           </div>
@@ -268,21 +302,26 @@ const soundSrc = useMemo(() => {
 
       {/* tiny CSS for animations */}
       <style>{`
-        @keyframes shimmer { 0% { transform: translateX(-100%);} 100% { transform: translateX(200%);} }
         @keyframes slideIn {
-          0% { opacity: 0; transform: translateY(-8px); }
-          100% { opacity: 1; transform: translateY(0); }
+          0% { opacity: 0; transform: translateY(-16px) scale(0.97); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes pulseGlow {
-          0% { transform: scale(1); filter: brightness(1); }
-          100% { transform: scale(1.06); filter: brightness(1.08); }
+        @keyframes sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
-        @keyframes quake { 
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-3px); }
-          40% { transform: translateX(3px); }
-          60% { transform: translateX(-2px); }
-          80% { transform: translateX(2px); }
+        @keyframes glimmer {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+        @keyframes quakePulse {
+          0% { transform: scale(1); opacity: 0.65; }
+          50% { transform: scale(1.25); opacity: 0.2; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+        @keyframes alertPulse {
+          0%, 100% { box-shadow: 0 0 18px rgba(248,113,113,0.35); transform: translateY(0); }
+          50% { box-shadow: 0 0 32px rgba(248,113,113,0.6); transform: translateY(-1px); }
         }
       `}</style>
     </div>
