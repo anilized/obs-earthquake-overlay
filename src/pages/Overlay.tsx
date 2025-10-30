@@ -186,6 +186,140 @@ const soundSrc = useMemo(() => {
   const subtitle = alert ? `M${m.toFixed(1)} ${alert.magtype ?? ''}`.trim() : ''
   const title = alert ? `${cityLine || (alert.flynn_region ?? 'Turkiye')}` : ''
   const coords = alert ? `Lat ${Number(alert.lat).toFixed(2)} | Lon ${Number(alert.lon).toFixed(2)}` : ''
+  const overlayStyle = (cfg as any).overlayStyle === 'flat' ? 'flat' : 'cinematic'
+  const isFlatLayout = overlayStyle === 'flat'
+  const depthValue = alert ? `${alert.depth ?? '?'} km` : '-'
+  const coordsValue = coords || '-'
+
+  const flatGradient = {
+    backgroundImage: `linear-gradient(115deg, rgba(${r}, ${g}, ${b}, 0.95), rgba(15, 23, 42, 0.88))`,
+  } as React.CSSProperties
+
+  const cinematicAlert = (
+    <div className="relative mx-auto w-full max-w-[460px]">
+      <div
+        className="absolute inset-0 -z-10 blur-2xl opacity-70"
+        style={{
+          backgroundImage: `linear-gradient(120deg, rgba(${r},${g},${b},0.75), rgba(12,17,28,0.2))`,
+        }}
+      />
+      <div
+        className={[
+          'pointer-events-auto relative w-full overflow-hidden rounded-[28px]',
+          'border border-white/18 text-white shadow-[0_25px_55px_rgba(0,0,0,0.45)]',
+          'opacity-0 translate-y-[-14px] animate-[slideIn_.32s_ease-out_forwards]',
+          theme.ring,
+        ].join(' ')}
+        style={{ backgroundImage: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
+      >
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage: `radial-gradient(circle at top left, rgba(${r},${g},${b},0.45), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
+          }}
+          aria-hidden
+        />
+        <div className="relative px-6 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
+              <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
+              Earthquake
+            </span>
+            <span className="text-xs font-medium text-white/70">{timeStr || '-'}</span>
+          </div>
+          <div className="mt-5 flex items-center gap-5">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <span
+                aria-hidden
+                className="absolute h-full w-full rounded-[22px]"
+                style={{
+                  background: `radial-gradient(circle, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0) 70%)`,
+                  animation: 'quakePulse 2.4s ease-in-out infinite',
+                }}
+              />
+              <span
+                className={`relative flex h-16 w-16 flex-col items-center justify-center rounded-[22px] ${theme.bg} text-[20px] font-black`}
+                style={{ boxShadow: `0 20px 45px rgba(${r},${g},${b},0.35)` }}
+              >
+                <span>{m.toFixed(1)}</span>
+                <span className="text-[9px] font-semibold tracking-[0.3em] text-white/80">mag</span>
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[20px] font-semibold leading-tight">{title || 'Awaiting data'}</div>
+              <div className="mt-1 truncate text-sm text-white/80">{subtitle || 'No live alert'}</div>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 text-xs uppercase tracking-[0.22em] text-white/65 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+              <p className="text-[10px] font-semibold text-white/50">Depth</p>
+              <p className="mt-1 text-sm font-semibold text-white">{depthValue}</p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
+              <p className="text-[10px] font-semibold text-white/50">Coordinates</p>
+              <p className="mt-1 text-sm font-semibold text-white">{coordsValue}</p>
+            </div>
+          </div>
+        </div>
+        <div className="relative h-[3px] w-full overflow-hidden bg-white/10">
+          <div className="absolute inset-0 w-full animate-[sweep_3.2s_linear_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        </div>
+      </div>
+    </div>
+  )
+
+  const flatAlert = (
+    <div className="relative mx-auto w-full max-w-[560px]">
+      <div
+        className={[
+          'pointer-events-auto relative w-full overflow-hidden rounded-[22px]',
+          'border border-white/15 bg-slate-950/80 text-white shadow-[0_18px_38px_rgba(0,0,0,0.45)]',
+          'opacity-0 translate-y-[-10px] animate-[slideIn_.32s_ease-out_forwards]',
+        ].join(' ')}
+        style={flatGradient}
+      >
+        <div
+          className="absolute inset-0 opacity-55"
+          style={{
+            backgroundImage: `radial-gradient(circle at top left, rgba(${r},${g},${b},0.4), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
+          }}
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              <span
+                aria-hidden
+                className="absolute h-full w-full rounded-[20px]"
+                style={{
+                  background: `radial-gradient(circle, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0) 70%)`,
+                  animation: 'quakePulse 2.4s ease-in-out infinite',
+                }}
+              />
+              <span
+                className={`relative flex h-14 w-14 flex-col items-center justify-center rounded-[20px] ${theme.bg} text-[18px] font-black`}
+              >
+                <span>{m.toFixed(1)}</span>
+                <span className="text-[9px] font-semibold tracking-[0.3em] text-white/80">mag</span>
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-[18px] font-semibold leading-tight">{title || 'Awaiting data'}</div>
+              <div className="mt-1 truncate text-sm text-white/80">{subtitle || 'No live alert'}</div>
+              <div className="mt-1 truncate text-xs text-white/70">{coordsValue}</div>
+            </div>
+          </div>
+          <div className="flex flex-col items-start gap-2 text-xs text-white/75 sm:items-end">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/90 animate-[alertPulse_2s_ease-in-out_infinite]">
+              <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
+              Earthquake
+            </span>
+            <span className="text-xs font-medium text-white/70">{timeStr || '-'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
@@ -195,95 +329,7 @@ const soundSrc = useMemo(() => {
           <div className="absolute inset-0 flex items-center justify-center py-8">
             {/* container fills horizontally with padding; transparent outside the toast */}
             <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
-              <div className="relative mx-auto w-full max-w-[460px]">
-                <div
-                  className="absolute inset-0 -z-10 blur-2xl opacity-70"
-                  style={{
-                    backgroundImage: `linear-gradient(120deg, rgba(${r},${g},${b},0.75), rgba(12,17,28,0.2))`,
-                  }}
-                />
-                <div
-                  className={[
-                    'pointer-events-auto relative w-full overflow-hidden rounded-[28px]',
-                    'border border-white/18 text-white shadow-[0_25px_55px_rgba(0,0,0,0.45)]',
-                    'opacity-0 translate-y-[-14px] animate-[slideIn_.32s_ease-out_forwards]',
-                    theme.ring,
-                  ].join(' ')}
-                  style={{ backgroundImage: `linear-gradient(135deg, ${gradFrom}, ${gradTo})` }}
-                >
-                  <div
-                    className="absolute inset-0 opacity-70"
-                    style={{
-                      backgroundImage: `radial-gradient(circle at top left, rgba(${r},${g},${b},0.45), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
-                    }}
-                    aria-hidden
-                  />
-                  <div className="relative px-6 py-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
-                        <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
-                        EARTHQUAKE ALERT
-                      </span>
-
-                    </div>
-
-                    <div className="mt-5 flex items-center gap-5">
-                      <div
-                        className="relative flex h-16 w-16 items-center justify-center"
-                      >
-                        <span
-                          className="absolute h-full w-full rounded-[22px]"
-                          style={{
-                            background: `radial-gradient(circle, rgba(${r},${g},${b},0.55) 0%, rgba(${r},${g},${b},0) 70%)`,
-                            animation: 'quakePulse 2.4s ease-in-out infinite',
-                          }}
-                          aria-hidden
-                        />
-                        <span
-                          className={`relative flex h-16 w-16 flex-col items-center justify-center rounded-[22px] ${theme.bg} text-[20px] font-black`}
-                          style={{ boxShadow: `0 20px 45px rgba(${r},${g},${b},0.35)` }}
-                        >
-                          <span>{m.toFixed(1)}</span>
-                          <span className="text-[9px] font-semibold tracking-[0.3em] text-white/80">
-                            mag
-                          </span>
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[20px] font-semibold leading-tight">
-                          {title || 'Awaiting data'}
-                        </div>
-                        <div className="mt-1 truncate text-sm text-white/80">
-                          {subtitle || 'No live alert'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 grid gap-4 text-xs uppercase tracking-[0.22em] text-white/65 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
-                        <p className="text-[10px] font-semibold text-white/50">Depth</p>
-                        <p className="mt-1 text-sm font-semibold text-white">{alert ? `${alert.depth ?? '?'} km` : '-'}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/15 bg-white/5 px-3 py-3">
-                        <p className="text-[10px] font-semibold text-white/50">Coordinates</p>
-                        <p className="mt-1 text-sm font-semibold text-white">{coords || '-'}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-white/75">
-                      <span>{timeStr || '-'}</span>
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-[6px] w-[6px] animate-[glimmer_2.6s_ease-in-out_infinite] rounded-full bg-white/70" />
-                        {cfg.beep ? 'Audio cue armed' : 'Silent mode active'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="relative h-[3px] w-full overflow-hidden bg-white/10">
-                    <div className="absolute inset-0 w-full animate-[sweep_3.2s_linear_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                  </div>
-                </div>
-              </div>
+              {isFlatLayout ? flatAlert : cinematicAlert}
             </div>
           </div>
         )}
@@ -327,6 +373,8 @@ const soundSrc = useMemo(() => {
     </div>
   )
 }
+
+
 
 
 

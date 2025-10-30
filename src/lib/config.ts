@@ -10,6 +10,7 @@ export const BOXES: Record<Exclude<Country, 'CustomBBox'>, BBox> = {
 };
 
 export type Theme = 'light' | 'dark'
+export type OverlayStyle = 'square' | 'flat'
 
 export type Settings = {
   minMag: number;
@@ -19,6 +20,7 @@ export type Settings = {
   displayDurationSec: number;
   theme: Theme;
   wsUrl?: string;
+  overlayStyle: OverlayStyle;
 };
 
 export const CONFIG_KEY = 'emscDockConfigV2';
@@ -32,6 +34,7 @@ export const defaultSettings: Settings = {
   displayDurationSec: 8,
   theme: 'dark',
   wsUrl: '',
+  overlayStyle: 'square',
 };
 
 export function loadSettings(): Settings {
@@ -48,6 +51,7 @@ export function loadSettings(): Settings {
       displayDurationSec: clampRange(Number(s.displayDurationSec ?? defaultSettings.displayDurationSec), 0, 120),
       theme: (s as any).theme === 'light' || (s as any).theme === 'dark' ? (s as any).theme : defaultSettings.theme,
       wsUrl: typeof s.wsUrl === 'string' ? s.wsUrl : '',
+      overlayStyle: (s as any).overlayStyle === 'flat' ? 'flat' : 'square',
     };
   } catch {
     return defaultSettings;
