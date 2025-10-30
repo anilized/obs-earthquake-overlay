@@ -21,7 +21,7 @@ function useToast() {
     setText(t)
     setOpen(true)
     window.clearTimeout((show as any)._t)
-    ;(show as any)._t = window.setTimeout(() => setOpen(false), ms)
+      ; (show as any)._t = window.setTimeout(() => setOpen(false), ms)
   }
 
   return {
@@ -48,8 +48,8 @@ function Toast({
     kind === 'success'
       ? { accent: 'bg-emerald-500', border: 'border-emerald-400/40', ring: 'ring-emerald-400/40' }
       : kind === 'error'
-      ? { accent: 'bg-rose-500', border: 'border-rose-400/40', ring: 'ring-rose-400/40' }
-      : { accent: 'bg-sky-500', border: 'border-sky-400/40', ring: 'ring-sky-400/40' }
+        ? { accent: 'bg-rose-500', border: 'border-rose-400/40', ring: 'ring-rose-400/40' }
+        : { accent: 'bg-sky-500', border: 'border-sky-400/40', ring: 'ring-sky-400/40' }
 
   return (
     <div aria-live="polite" className="pointer-events-none fixed bottom-6 right-6 z-[2147483647]">
@@ -254,7 +254,7 @@ export default function Settings() {
 
   const { r: previewR, g: previewG, b: previewB } = hexToRgb(s.notifColor || '#dc2626')
   const previewGradient = {
-    backgroundImage: `linear-gradient(135deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.65), rgba(15, 23, 42, 0.92))`,
+    backgroundImage: `linear-gradient(360deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.75), rgba(15, 23, 42, 0.92))`,
   } as React.CSSProperties
   const renderCinematicPreview = () => (
     <div className="relative w-full max-w-[420px]">
@@ -269,13 +269,12 @@ export default function Settings() {
       >
         <div className="absolute inset-0 opacity-70" style={previewPattern} aria-hidden />
         <div className="relative px-6 py-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex justify-center mb-4">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/95 shadow-[0_0_20px_rgba(255,38,38,0.35)] animate-[alertPulse_2s_ease-in-out_infinite]">
               <span className="h-2 w-2 rounded-full bg-[#f87171] shadow-[0_0_12px_rgba(248,113,113,0.9)]" />
               Earthquake
             </span>
           </div>
-
           <div className="mt-5 flex items-center gap-5">
             <div className="relative flex h-16 w-16 items-center justify-center">
               <span
@@ -497,13 +496,13 @@ export default function Settings() {
                 <span className="text-[10px] font-normal tracking-normal text-white/40">Preview only</span>
               </div>
               <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-              Update the test values below to instantly see how the overlay banner will shown on stream.
-            </p>
+                Update the test values below to instantly see how the overlay banner will shown on stream.
+              </p>
               <div className="mt-5 flex justify-center">
                 {s.overlayStyle === 'flat' ? renderFlatPreview() : renderCinematicPreview()}
               </div>
             </div>
-            
+
           </aside>
         </div>
 
