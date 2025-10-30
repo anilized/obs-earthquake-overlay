@@ -496,13 +496,14 @@ export default function Settings() {
                 <span>Overlay Sample</span>
                 <span className="text-[10px] font-normal tracking-normal text-white/40">Preview only</span>
               </div>
+              <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+              Update the test values below to instantly see how the overlay banner will shown on stream.
+            </p>
               <div className="mt-5 flex justify-center">
                 {s.overlayStyle === 'flat' ? renderFlatPreview() : renderCinematicPreview()}
               </div>
             </div>
-            <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-              Update the test values below to instantly see how the overlay banner will shown on stream.
-            </p>
+            
           </aside>
         </div>
 
