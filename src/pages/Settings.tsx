@@ -103,18 +103,21 @@ function hexToRgb(hex: string) {
   return { r: 220, g: 38, b: 38 }
 }
 
-const themeOptions: Array<{ value: Theme; title: string; caption: string }> = [
-  {
-    value: 'dark',
-    title: 'Dark Studio',
-    caption: 'High contrast overlay with neon glow accents made for dim streaming rooms.',
-  },
-  {
-    value: 'light',
-    title: 'Daylight',
-    caption: 'Clean, low-distraction visuals that shine on bright or newsroom layouts.',
-  },
-]
+function SunIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.364-6.364l-1.591 1.591M7.227 16.773l-1.59 1.591m0-11.182l1.59 1.591m11.182 11.182-1.591-1.591M12 8.25a3.75 3.75 0 110 7.5 3.75 3.75 0 010-7.5z" />
+    </svg>
+  )
+}
+
+function MoonIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+    </svg>
+  )
+}
 
 export default function Settings() {
   const [s, setS] = useState(() => loadSettings())
@@ -221,6 +224,11 @@ export default function Settings() {
     ? 'inline-flex items-center justify-center gap-2 rounded-full border border-slate-200/80 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900'
     : 'inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-medium text-slate-100 transition hover:border-white/40'
 
+  const themeTrackClass = isLightTheme
+    ? 'border-amber-200/80 bg-amber-100/60 shadow-[0_12px_32px_rgba(251,191,36,0.35)]'
+    : 'border-white/15 bg-slate-900/70 shadow-[0_12px_32px_rgba(15,23,42,0.65)]'
+  const themeThumbClass = isLightTheme ? 'translate-x-0 bg-white text-amber-500' : 'translate-x-[48px] bg-slate-900 text-sky-200'
+
   const previewMag = Number.isFinite(test.mag) ? Number(test.mag) : 0
   const previewDepth = Number.isFinite(test.depth) ? `${test.depth} km depth` : 'Depth unknown'
   const previewLat = Number.isFinite(test.lat) ? Number(test.lat).toFixed(2) : '??'
@@ -248,66 +256,49 @@ export default function Settings() {
   return (
     <div className={containerClass}>
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-10">
-        <header className="mb-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Control Room
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Overlay Settings</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-300">
-            Fine-tune the alert overlay before you go live. Shape the look, sound, and feel of earthquake alerts,
-            and fire off quick tests without leaving your streaming software.
-          </p>
+        <header className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="mt-3 text-3xl font-semibold">Overlay Settings</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
+              Theme
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isLightTheme}
+              aria-label={isLightTheme ? 'Switch to dark theme' : 'Switch to light theme'}
+              onClick={() => updateSetting('theme', isLightTheme ? 'dark' : 'light')}
+              className="relative inline-flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+            >
+              <span className={`flex h-10 w-24 items-center justify-between rounded-full px-3 text-xs font-semibold transition-all duration-300 ${themeTrackClass}`}>
+                <span className={`relative transition-colors ${isLightTheme ? 'text-amber-500' : 'text-white/45'}`}>
+                  <SunIcon className="h-5 w-5" />
+                </span>
+                <span className={`relative transition-colors ${isLightTheme ? 'text-white/45' : 'text-sky-200'}`}>
+                  <MoonIcon className="h-5 w-5" />
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute left-1 top-1 flex h-8 w-8 items-center justify-center rounded-full shadow-lg shadow-black/25 transition-transform duration-300 ${themeThumbClass}`}
+              >
+                {isLightTheme ? <SunIcon className="h-4 w-4 text-amber-500" /> : <MoonIcon className="h-4 w-4 text-sky-200" />}
+              </span>
+            </button>
+          </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.6fr_1.6fr]">
           <section className={`${cardClass} p-6`}>
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
-              Appearance
+              Notification Appearance
             </h2>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-              Dial in a visual style that matches your scene.
+              Set notification color.
             </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {themeOptions.map((option) => {
-                const isActive = s.theme === option.value
-                const optionTone = isLightTheme
-                  ? 'border-slate-200/80 bg-white/90 hover:border-sky-300/70'
-                  : 'border-white/10 bg-slate-950/30 hover:border-white/30'
-                const optionActive = isActive
-                  ? 'border-sky-400/80 bg-sky-500/10 shadow-lg shadow-sky-500/30 ring-2 ring-sky-400/50'
-                  : ''
-                return (
-                  <label
-                    key={option.value}
-                    className={`relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition ${optionTone} ${optionActive}`}
-                  >
-                    <input
-                      type="radio"
-                      name="theme"
-                      value={option.value}
-                      checked={isActive}
-                      onChange={() => updateSetting('theme', option.value)}
-                      className="sr-only"
-                    />
-                    {isActive && (
-                      <span className="absolute right-4 top-4 rounded-full border border-sky-400/40 bg-sky-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-sky-100">
-                        Active
-                      </span>
-                    )}
-                    <span className="text-base font-semibold">{option.title}</span>
-                    <span className="text-xs leading-relaxed text-slate-500 dark:text-slate-300">
-                      {option.caption}
-                    </span>
-                  </label>
-                )
-              })}
-            </div>
-
-            <div className="mt-8">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
-                Notification Color
-              </label>
+            <div className="mt-6">
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 <input
                   aria-label="Notification color"
@@ -328,9 +319,6 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                This color powers the glow on the alert bar. Pick something that matches your brand palette.
-              </p>
             </div>
           </section>
 
@@ -380,7 +368,7 @@ export default function Settings() {
               </div>
             </div>
             <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-              Update the test values below to instantly see how the overlay banner will feel on stream.
+              Update the test values below to instantly see how the overlay banner will shown on stream.
             </p>
           </aside>
         </div>
