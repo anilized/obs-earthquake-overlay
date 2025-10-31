@@ -431,7 +431,7 @@ const soundSrc = useMemo(() => {
       {/* Connection status popup with flat overlay design */}
       {connToast.open && (
         <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
-          <div className="absolute inset-0 flex items-start justify-center pt-8">
+          <div className="absolute inset-0 flex items-center justify-center py-8">
             <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
               {connectionAlert}
             </div>
