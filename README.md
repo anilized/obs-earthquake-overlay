@@ -26,6 +26,8 @@ Bu panel üzerinden:
 - Ses dosyası (`Sound URL`)
 - Beep (aç/kapat)
 - Test uyarısı gönderme
+- Tasarim ve renk secimleri
+- Baglanti baslatip sonlandirma
 
 ayarlarını yönetebilirsin.
 
@@ -40,7 +42,7 @@ https://anilized.github.io/obs-earthquake-overlay/#/overlay?size=800
 
 > `size=800` değeri overlay’in kapladığı alanı belirtir.  
 > Önerilen: `800` veya `1000` piksel.  
-> Overlay şeffaftır, yalnızca deprem olduğunda görünür.
+> Overlay şeffaftır, yalnızca deprem bildirimi geldiginde görünür.
 
 
 ---
@@ -64,15 +66,8 @@ Bu sayede overlay tasarımını veya ses dosyasını test edebilirsin.
 Bu sistem yalnızca **yayın içi bilgilendirme** amaçlıdır.  
 **Resmî uyarı veya afet bildirimi değildir.**
 
-Kaynak veriler, **EMSC** tarafından sağlanır.  
+Kaynak veriler, IoT cihazlardan gelen veriler ile sağlanır.  
 Resmî kurum uyarıları için [AFAD](https://deprem.afad.gov.tr/) veya [Kandilli Rasathanesi](http://www.koeri.boun.edu.tr/) kaynaklarını takip ediniz.
-
----
-
-## Geri Bildirim / İletişim
-
-**Geliştirici:** [Anıl Can](https://github.com/anilized)    
-**E-posta:** [Anıl Can](anillcan7@gmail.com)  
 
 ---
 
@@ -81,43 +76,14 @@ Resmî kurum uyarıları için [AFAD](https://deprem.afad.gov.tr/) veya [Kandill
 
 ---
 
-## .env ile Yapılandırma
-
-Vite ortam değişkenleriyle WS adresini kodu değiştirmeden güncelleyebilirsin.
-
-- `/.env.prod` (build sırasında kullanılır):
-
-```
-VITE_EMSC_WS_URL=wss://www.seismicportal.eu/standing_order/websocket
-```
-
-- Geliştirme için istersen `/.env` de oluşturabilirsin.
-
-Notlar:
-- Build komutu `vite build --mode prod` çalışır ve `.env.prod` dosyasını yükler.
-- Vite yalnızca `VITE_` ile başlayan değişkenleri ön uca aktarır.
-
 ### Geliştirme Ortamı (.env.dev)
 
 `npm run dev` komutu `--mode dev` ile çalışır ve `.env.dev` dosyasını yükler:
 
 ```
-VITE_EMSC_WS_URL=wss://www.seismicportal.eu/standing_order/websocket
+VITE_EMSC_WS_URL=ws://example-websocket-address
 ```
 
 Gerekirse geliştirme sırasında farklı bir WS adresi verebilirsin.
 
 ---
-
-## Vercel Password Protection
-
-Bu projeyi Vercel üzerinde şifre ile korumak için Vercel’in yerleşik Password Protection özelliğini kullanın (Panel → Project → Settings → Protection).
-
-- Vercel Dashboard → Project → Settings → Protection
-- “Password Protection” özelliğini etkinleştir
-- Kullanıcı adı ve şifreyi tanımla (Preview ve/veya Production için)
-- Kaydet ve yeniden dağıtımlar için korumayı doğrula
-
-Notlar
-- Bu özellik Vercel tarafında yönetilir; repoda ek yapılandırma gerekmez.
-- Yalnızca `/admin` yolu için koruma isterseniz Vercel’in Path Protection özelliğini kullanın. Alternatif olarak, talep edersen kısmi koruma için bir Edge/Function tabanlı Basic Auth akışı kurgulayabilirim.

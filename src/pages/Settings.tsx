@@ -132,8 +132,16 @@ function MoonIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
+const WS_ENABLED_KEY = 'emscWsEnabled' as const;
+
 export default function Settings() {
   const [s, setS] = useState(() => loadSettings())
+  const [wsEnabled, setWsEnabled] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem(WS_ENABLED_KEY)
+      return v == null ? true : v !== 'false'
+    } catch { return true }
+  })
   const [test, setTest] = useState<TestForm>(() => {
     const stored = loadSettings()
     const baseMag = Math.max(3, Number(stored.minMag) + 0.5)
@@ -173,6 +181,15 @@ export default function Settings() {
     setS(next)
     saveSettings(next)
     toast.show('info', 'Defaults restored and saved.')
+  }
+
+  const handleToggleConnection = () => {
+    const next = !wsEnabled
+    setWsEnabled(next)
+    try { localStorage.setItem(WS_ENABLED_KEY, String(next)) } catch { }
+    chan.postMessage({ type: 'ws:set', enabled: next })
+    if (next) toast.show('success', 'Connection started.')
+    else toast.show('info', 'Connection stopped.')
   }
 
   const handleSendTest = () => {
@@ -381,8 +398,20 @@ export default function Settings() {
     <div className={containerClass}>
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-10">
         <header className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="mt-3 text-3xl font-semibold">Notification Settings</h1>
+            <button
+              type="button"
+              onClick={handleToggleConnection}
+              className={[
+                'mt-3 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg transition',
+                wsEnabled
+                  ? 'bg-rose-600 text-white shadow-rose-600/40 hover:bg-rose-500'
+                  : 'bg-emerald-600 text-white shadow-emerald-600/40 hover:bg-emerald-500',
+              ].join(' ')}
+            >
+              {wsEnabled ? 'Stop Notifications' : 'Start Notifications'}
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
@@ -491,11 +520,11 @@ export default function Settings() {
               Stream Preview
             </h2>
             <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-inner shadow-black/30">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3 text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3 text-xs font-semibold uppercase tracking-[0.3em] text-white">
                 <span>Overlay Sample</span>
-                <span className="text-[10px] font-normal tracking-normal text-white/40">Preview only</span>
+                <span className="text-[10px] font-normal tracking-normal text-white">Preview only</span>
               </div>
-              <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-4 text-xs text-white dark:text-slate-400">
                 Update the test values below to instantly see how the overlay banner will shown on stream.
               </p>
               <div className="mt-5 flex justify-center">
