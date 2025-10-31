@@ -39,6 +39,9 @@ export default function Overlay() {
   const [alert, setAlert] = useState<EmscProps | null>(null)
   const [cityLine, setCityLine] = useState<string>('')
   const [latestMs, setLatestMs] = useState<number>(0)
+  const [connToast, setConnToast] = useState<{ open: boolean; kind: 'info' | 'error'; text: string; status?: 'lost' | 'closed' }>({ open: false, kind: 'info', text: '' })
+  const toastTimerRef = useRef<number | null>(null)
+  const lastStatusRef = useRef<'open' | 'lost' | 'closed' | null>(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const q = useQuery()
@@ -138,7 +141,22 @@ const soundSrc = useMemo(() => {
       const t = Date.parse(p.time || '') || 0
       if (t <= latestMs) return
       if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
-    }, wsUrl)
+    }, wsUrl, (status) => {
+      if (lastStatusRef.current === status) return
+      lastStatusRef.current = status
+      if (status === 'lost') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast({ open: true, kind: 'error', text: 'WebSocket connection lost. Reconnecting…', status: 'lost' })
+        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 4000) as unknown as number
+      } else if (status === 'closed') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast({ open: true, kind: 'info', text: 'WebSocket connection closed.', status: 'closed' })
+        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 10000) as unknown as number
+      } else if (status === 'open') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast((t) => ({ ...t, open: false }))
+      }
+    })
     const onUnload = () => { try { stop && stop() } catch {} }
     try {
       window.addEventListener('beforeunload', onUnload)
@@ -224,6 +242,12 @@ const soundSrc = useMemo(() => {
 
   const flatGradient = {
     backgroundImage: `linear-gradient(115deg, rgba(${r}, ${g}, ${b}, 0.95), rgba(15, 23, 42, 0.88))`,
+  } as React.CSSProperties
+
+  // Connection popup uses a sky-blue themed flat card
+  const connR = 14, connG = 165, connB = 233 // tailwind sky-500
+  const connFlatGradient = {
+    backgroundImage: `linear-gradient(115deg, rgba(${connR}, ${connG}, ${connB}, 0.95), rgba(15, 23, 42, 0.88))`,
   } as React.CSSProperties
 
   const cinematicGradient = {
@@ -353,8 +377,67 @@ const soundSrc = useMemo(() => {
     </div>
   )
 
+  const connectionAlert = (
+    <div className="relative mx-auto w-full max-w-[560px]">
+      <div
+        className={[
+          'pointer-events-auto relative w-full overflow-hidden rounded-[22px]',
+          'border border-white/15 bg-slate-950/80 text-white shadow-[0_18px_38px_rgba(0,0,0,0.45)]',
+          'opacity-0 translate-y-[-10px] animate-[slideIn_.32s_ease-out_forwards]',
+        ].join(' ')}
+        style={connFlatGradient}
+      >
+        <div
+          className="absolute inset-0 opacity-55"
+          style={{
+            backgroundImage: `radial-gradient(circle at top left, rgba(${connR},${connG},${connB},0.4), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
+          }}
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              <span
+                aria-hidden
+                className="absolute h-full w-full rounded-[20px]"
+                style={{
+                  background: `radial-gradient(circle, rgba(${connR},${connG},${connB},0.55) 0%, rgba(${connR},${connG},${connB},0) 70%)`,
+                  animation: 'quakePulse 2.4s ease-in-out infinite',
+                }}
+              />
+              <span className={`relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-sky-500 text-[14px] font-black`}>
+                WS
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-[18px] font-semibold leading-tight">{connToast.status === 'lost' ? 'Connection Lost' : 'Connection Closed'}</div>
+              <div className="mt-1 truncate text-sm text-white/85">{connToast.status === 'lost' ? 'Reconnecting…' : 'Stopped by user or server'}</div>
+              <div className="mt-1 truncate text-xs text-white/70">WebSocket</div>
+            </div>
+          </div>
+          <div className="flex flex-col items-start gap-2 text-xs text-white/75 sm:items-end">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/90">
+              <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.8)]" />
+              Status
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
+      {/* Connection status popup with flat overlay design */}
+      {connToast.open && (
+        <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
+          <div className="absolute inset-0 flex items-start justify-center pt-8">
+            <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
+              {connectionAlert}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Stage box: fixed region of size x size; popup is centered and fills horizontally */}
       <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
         {alert && (
