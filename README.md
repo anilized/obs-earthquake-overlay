@@ -6,6 +6,9 @@ Bu proje, **EMSC (European-Mediterranean Seismological Centre)** verilerini kull
 
 ---
 
+## Local Testler Icin
+`.env` dosyasindaki API key'e kendi keyinizi koymaniz gerek.
+
 ## OBS Üzerinde Kullanım (Yayıncılar için)
 
 ### 1- Ayarlar Paneli (OBS Dock)
