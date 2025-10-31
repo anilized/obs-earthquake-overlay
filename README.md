@@ -87,3 +87,22 @@ VITE_EMSC_WS_URL=ws://example-websocket-address
 Gerekirse geliştirme sırasında farklı bir WS adresi verebilirsin.
 
 ---
+
+### Production (Vercel) Üzerinde Güvenli WS Proxy (wss → ws)
+
+Canlı ortam HTTPS çalıştığı için tarayıcı, `ws://` (güvensiz) hedefe doğrudan bağlanmayı engeller. Bu repo içinde, Vercel Edge Function ile bir WS proxy eklendi:
+
+- Edge Function: `api/ws-proxy.ts`
+- Route: `/ws` → dış `ws://` hedefe köprü
+- `vercel.json` içinde `/ws` bu Edge Function'a yönlenir.
+- Üretimde `.env.prod` şu şekilde ayarlı: `VITE_EMSC_WS_URL=/ws`
+
+Kullanım: Frontend tarafı göreceli `/ws`'e bağlanır; tarayıcı sayfası HTTPS ise WebSocket otomatik olarak `wss://.../ws` olarak açılır ve proxy dıştaki `ws://...` hedefe iletir.
+
+ Hedef dış WS adresini Vercel ortam değişkeni olarak ayarla:
+
+```
+UPSTREAM_WS_URL=ws://your-external-ws-host:port/path
+```
+
+Alternatif olarak geçici test için `wss://your-domain/ws?target=ws://external:port/path` şeklinde `target` query parametresi de kullanılabilir.
