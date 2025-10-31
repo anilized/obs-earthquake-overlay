@@ -1,21 +1,5 @@
-export type EmscProps = {
-  unid: string;
-  time: string;
-  lat: number;
-  lon: number;
-  mag: number;
-  magtype?: string;
-  depth?: number;
-  flynn_region?: string;
-  province?: string;
-};
-
-export type EmscMsg = {
-  action?: 'create' | 'update' | string;
-  data?: { properties?: Partial<EmscProps> };
-};
-
-const LAST_EVENT_KEY = 'emscLastEventId';
+import { LAST_EVENT_KEY, type CustomEventItem, type EmscProps, type GenericExternalMsg } from './emsc.shared';
+export type { EmscProps, EmscMsg, GenericExternalMsg, CustomEventItem } from './emsc.shared';
 
 function getLastEventId(): string {
   if (typeof localStorage === 'undefined') return '';
@@ -27,21 +11,8 @@ function setLastEventId(id: string) {
   try { localStorage.setItem(LAST_EVENT_KEY, id); } catch { /* ignore */ }
 }
 
-function toProps(maybe: Partial<EmscProps>): EmscProps | null {
-  const unid = String(maybe.unid ?? '');
-  const time = String(maybe.time ?? '');
-  const lat = Number(maybe.lat);
-  const lon = Number(maybe.lon);
-  const mag = Number(maybe.mag);
-  if (!unid || !time || Number.isNaN(lat) || Number.isNaN(lon) || Number.isNaN(mag)) return null;
-  return {
-    unid, time, lat, lon, mag,
-    magtype: maybe.magtype, depth: maybe.depth, flynn_region: maybe.flynn_region, province: (maybe as any).province,
-  };
-}
-
 export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: string) {
-  const baseUrl = String(urlOverride || (import.meta as any).env?.VITE_EMSC_WS_URL || '');
+  const baseUrl = String(urlOverride || (import.meta as any).env?.VITE_EMSC_WS_URL || '').trim();
   if (!baseUrl) {
     // No endpoint configured; do not connect
     return () => {};
@@ -150,13 +121,6 @@ export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: strin
 
 // --- Generic external payload support ---
 
-export type GenericExternalMsg = {
-  magnitude: number;
-  location: { latitude: number; longitude: number };
-  depth?: number; // km
-  timestamp: string | number; // ISO string or epoch ms/s
-};
-
 function normalizeTimestamp(ts: string | number): string | null {
   try {
     if (typeof ts === 'string') {
@@ -190,16 +154,6 @@ export function fromGenericExternal(maybe: Partial<GenericExternalMsg>): EmscPro
 }
 
 // --- Custom backend event mapping ---
-type CustomEventItem = {
-  id: number | string;
-  magnitude: number;
-  location?: string;
-  province?: string;
-  latitude: number;
-  longitude: number;
-  depth?: number;
-  event_time: string; // ISO time
-};
 
 export function fromCustomEvent(item: Partial<CustomEventItem>): EmscProps | null {
   const id = (item as any)?.id;
