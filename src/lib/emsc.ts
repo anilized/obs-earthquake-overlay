@@ -15,6 +15,18 @@ export type EmscMsg = {
   data?: { properties?: Partial<EmscProps> };
 };
 
+const LAST_EVENT_KEY = 'emscLastEventId';
+
+function getLastEventId(): string {
+  if (typeof localStorage === 'undefined') return '';
+  try { return localStorage.getItem(LAST_EVENT_KEY) || ''; } catch { return ''; }
+}
+
+function setLastEventId(id: string) {
+  if (typeof localStorage === 'undefined') return;
+  try { localStorage.setItem(LAST_EVENT_KEY, id); } catch { /* ignore */ }
+}
+
 function toProps(maybe: Partial<EmscProps>): EmscProps | null {
   const unid = String(maybe.unid ?? '');
   const time = String(maybe.time ?? '');
@@ -114,10 +126,12 @@ export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: strin
               };
               console.log(`#EQ-MSG ${JSON.stringify(logObj)}`)
             } catch {}
-            if (!seen.has(latest.unid)) {
-              seen.add(latest.unid);
-              onEvent(latest);
-            }
+            const cached = getLastEventId();
+            if (cached === latest.unid) return;
+            if (seen.has(latest.unid)) return;
+            seen.add(latest.unid);
+            setLastEventId(latest.unid);
+            onEvent(latest);
           }
           return;
         }
