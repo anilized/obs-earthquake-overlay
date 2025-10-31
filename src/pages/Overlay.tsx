@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { connectEMSC, EmscProps, fromGenericExternal } from '../lib/emsc'
-import { chan, loadSettings, BOXES } from '../lib/config'
+import { LAST_EVENT_KEY } from '../lib/emsc.shared'
+import { chan, loadSettings, BOXES, WS_ENABLED_KEY } from '../lib/config'
 import { useLocation } from 'react-router-dom'
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -38,11 +39,20 @@ export default function Overlay() {
   const [alert, setAlert] = useState<EmscProps | null>(null)
   const [cityLine, setCityLine] = useState<string>('')
   const [latestMs, setLatestMs] = useState<number>(0)
+  const [connToast, setConnToast] = useState<{ open: boolean; kind: 'info' | 'error'; text: string; status?: 'lost' | 'closed' }>({ open: false, kind: 'info', text: '' })
+  const toastTimerRef = useRef<number | null>(null)
+  const lastStatusRef = useRef<'open' | 'lost' | 'closed' | null>(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const q = useQuery()
   const [pageActive, setPageActive] = useState<boolean>(() => {
     try { return document.visibilityState !== 'hidden' } catch { return true }
+  })
+  const [wsEnabled, setWsEnabled] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem(WS_ENABLED_KEY)
+      return v == null ? true : v !== 'false'
+    } catch { return true }
   })
   useEffect(() => {
     const onVis = () => setPageActive(document.visibilityState !== 'hidden')
@@ -57,12 +67,16 @@ export default function Overlay() {
   // Always TURKEY bbox (ignore Settings country/bbox)
   const TURKEY_BBOX = BOXES.Turkey
 
-  // settings sync + test
+  // settings sync + test + ws toggle
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const data = e.data as any
       if (data?.type === 'config:update') {
         setCfg(loadSettings()) // still use minMag, beep, soundUrl
+      } else if (data?.type === 'ws:set') {
+        const enabled = !!data.enabled
+        setWsEnabled(enabled)
+        try { localStorage.setItem(WS_ENABLED_KEY, String(enabled)) } catch {}
       } else if (data?.type === 'test') {
         const t = (data as TestMsg).payload
         const p: EmscProps = {
@@ -83,7 +97,15 @@ export default function Overlay() {
       } else if (data && typeof data === 'object') {
         // Accept direct external payload: { magnitude, location{latitude,longitude}, depth, timestamp }
         const p = fromGenericExternal(data)
-        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
+        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) {
+          try {
+            const cached = typeof localStorage !== 'undefined' ? (localStorage.getItem(LAST_EVENT_KEY) || '') : ''
+            if (cached && cached === p.unid) return
+            if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_EVENT_KEY, p.unid)
+            try { console.log(`#EQ-LAST ${p.unid}`) } catch {}
+          } catch {}
+          showNewAlert(p)
+        }
       }
     }
     chan.addEventListener('message', handler)
@@ -113,14 +135,41 @@ const soundSrc = useMemo(() => {
 
   // EMSC live
   useEffect(() => {
-    if (!pageActive) return
+    if (!pageActive || !wsEnabled) return
     const wsUrl = (cfg.wsUrl || '').trim() || undefined
-    return connectEMSC((p) => {
+    const stop = connectEMSC((p) => {
       const t = Date.parse(p.time || '') || 0
       if (t <= latestMs) return
       if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
-    }, wsUrl)
-  }, [cfg.minMag, cfg.wsUrl, pageActive, latestMs])
+    }, wsUrl, (status) => {
+      if (lastStatusRef.current === status) return
+      lastStatusRef.current = status
+      if (status === 'lost') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast({ open: true, kind: 'error', text: 'WebSocket connection lost. Reconnecting…', status: 'lost' })
+        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 4000) as unknown as number
+      } else if (status === 'closed') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast({ open: true, kind: 'info', text: 'WebSocket connection closed.', status: 'closed' })
+        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 10000) as unknown as number
+      } else if (status === 'open') {
+        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+        setConnToast((t) => ({ ...t, open: false }))
+      }
+    })
+    const onUnload = () => { try { stop && stop() } catch {} }
+    try {
+      window.addEventListener('beforeunload', onUnload)
+      window.addEventListener('unload', onUnload)
+    } catch {}
+    return () => {
+      try {
+        window.removeEventListener('beforeunload', onUnload)
+        window.removeEventListener('unload', onUnload)
+      } catch {}
+      stop && stop()
+    }
+  }, [cfg.minMag, cfg.wsUrl, pageActive, latestMs, wsEnabled])
 
   /** Replace current alert with the new one, fetch city and restart audio */
   function showNewAlert(p: EmscProps) {
@@ -193,6 +242,12 @@ const soundSrc = useMemo(() => {
 
   const flatGradient = {
     backgroundImage: `linear-gradient(115deg, rgba(${r}, ${g}, ${b}, 0.95), rgba(15, 23, 42, 0.88))`,
+  } as React.CSSProperties
+
+  // Connection popup uses a sky-blue themed flat card
+  const connR = 14, connG = 165, connB = 233 // tailwind sky-500
+  const connFlatGradient = {
+    backgroundImage: `linear-gradient(115deg, rgba(${connR}, ${connG}, ${connB}, 0.95), rgba(15, 23, 42, 0.88))`,
   } as React.CSSProperties
 
   const cinematicGradient = {
@@ -322,8 +377,67 @@ const soundSrc = useMemo(() => {
     </div>
   )
 
+  const connectionAlert = (
+    <div className="relative mx-auto w-full max-w-[560px]">
+      <div
+        className={[
+          'pointer-events-auto relative w-full overflow-hidden rounded-[22px]',
+          'border border-white/15 bg-slate-950/80 text-white shadow-[0_18px_38px_rgba(0,0,0,0.45)]',
+          'opacity-0 translate-y-[-10px] animate-[slideIn_.32s_ease-out_forwards]',
+        ].join(' ')}
+        style={connFlatGradient}
+      >
+        <div
+          className="absolute inset-0 opacity-55"
+          style={{
+            backgroundImage: `radial-gradient(circle at top left, rgba(${connR},${connG},${connB},0.4), transparent 55%), radial-gradient(circle at bottom right, rgba(15,23,42,0.85), transparent 55%)`,
+          }}
+          aria-hidden
+        />
+        <div className="relative flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              <span
+                aria-hidden
+                className="absolute h-full w-full rounded-[20px]"
+                style={{
+                  background: `radial-gradient(circle, rgba(${connR},${connG},${connB},0.55) 0%, rgba(${connR},${connG},${connB},0) 70%)`,
+                  animation: 'quakePulse 2.4s ease-in-out infinite',
+                }}
+              />
+              <span className={`relative flex h-14 w-14 items-center justify-center rounded-[20px] bg-sky-500 text-[14px] font-black`}>
+                WS
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-[18px] font-semibold leading-tight">{connToast.status === 'lost' ? 'Connection Lost' : 'Connection Closed'}</div>
+              <div className="mt-1 truncate text-sm text-white/85">{connToast.status === 'lost' ? 'Reconnecting…' : 'Stopped by user or server'}</div>
+              <div className="mt-1 truncate text-xs text-white/70">WebSocket</div>
+            </div>
+          </div>
+          <div className="flex flex-col items-start gap-2 text-xs text-white/75 sm:items-end">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/90">
+              <span className="h-2 w-2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.8)]" />
+              Status
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="h-full w-full bg-transparent" style={{ pointerEvents: 'none' }}>
+      {/* Connection status popup with flat overlay design */}
+      {connToast.open && (
+        <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
+          <div className="absolute inset-0 flex items-center justify-center py-8">
+            <div className="w-full" style={{ paddingLeft: padding, paddingRight: padding }}>
+              {connectionAlert}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Stage box: fixed region of size x size; popup is centered and fills horizontally */}
       <div className="fixed top-0 left-0" style={{ width: size, height: size }}>
         {alert && (
