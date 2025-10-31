@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { connectEMSC, EmscProps, fromGenericExternal } from '../lib/emsc'
-import { chan, loadSettings, BOXES } from '../lib/config'
+import { LAST_EVENT_KEY } from '../lib/emsc.shared'
+import { chan, loadSettings, BOXES, WS_ENABLED_KEY } from '../lib/config'
 import { useLocation } from 'react-router-dom'
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
@@ -44,6 +45,12 @@ export default function Overlay() {
   const [pageActive, setPageActive] = useState<boolean>(() => {
     try { return document.visibilityState !== 'hidden' } catch { return true }
   })
+  const [wsEnabled, setWsEnabled] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem(WS_ENABLED_KEY)
+      return v == null ? true : v !== 'false'
+    } catch { return true }
+  })
   useEffect(() => {
     const onVis = () => setPageActive(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', onVis)
@@ -57,12 +64,16 @@ export default function Overlay() {
   // Always TURKEY bbox (ignore Settings country/bbox)
   const TURKEY_BBOX = BOXES.Turkey
 
-  // settings sync + test
+  // settings sync + test + ws toggle
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const data = e.data as any
       if (data?.type === 'config:update') {
         setCfg(loadSettings()) // still use minMag, beep, soundUrl
+      } else if (data?.type === 'ws:set') {
+        const enabled = !!data.enabled
+        setWsEnabled(enabled)
+        try { localStorage.setItem(WS_ENABLED_KEY, String(enabled)) } catch {}
       } else if (data?.type === 'test') {
         const t = (data as TestMsg).payload
         const p: EmscProps = {
@@ -83,7 +94,15 @@ export default function Overlay() {
       } else if (data && typeof data === 'object') {
         // Accept direct external payload: { magnitude, location{latitude,longitude}, depth, timestamp }
         const p = fromGenericExternal(data)
-        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
+        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) {
+          try {
+            const cached = typeof localStorage !== 'undefined' ? (localStorage.getItem(LAST_EVENT_KEY) || '') : ''
+            if (cached && cached === p.unid) return
+            if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_EVENT_KEY, p.unid)
+            try { console.log(`#EQ-LAST ${p.unid}`) } catch {}
+          } catch {}
+          showNewAlert(p)
+        }
       }
     }
     chan.addEventListener('message', handler)
@@ -113,14 +132,26 @@ const soundSrc = useMemo(() => {
 
   // EMSC live
   useEffect(() => {
-    if (!pageActive) return
+    if (!pageActive || !wsEnabled) return
     const wsUrl = (cfg.wsUrl || '').trim() || undefined
-    return connectEMSC((p) => {
+    const stop = connectEMSC((p) => {
       const t = Date.parse(p.time || '') || 0
       if (t <= latestMs) return
       if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
     }, wsUrl)
-  }, [cfg.minMag, cfg.wsUrl, pageActive, latestMs])
+    const onUnload = () => { try { stop && stop() } catch {} }
+    try {
+      window.addEventListener('beforeunload', onUnload)
+      window.addEventListener('unload', onUnload)
+    } catch {}
+    return () => {
+      try {
+        window.removeEventListener('beforeunload', onUnload)
+        window.removeEventListener('unload', onUnload)
+      } catch {}
+      stop && stop()
+    }
+  }, [cfg.minMag, cfg.wsUrl, pageActive, latestMs, wsEnabled])
 
   /** Replace current alert with the new one, fetch city and restart audio */
   function showNewAlert(p: EmscProps) {

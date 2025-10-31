@@ -25,6 +25,7 @@ export type Settings = {
 
 export const CONFIG_KEY = 'emscDockConfigV2';
 export const chan = new BroadcastChannel('emsc-quake');
+export const WS_ENABLED_KEY = 'emscWsEnabled';
 
 export const defaultSettings: Settings = {
   minMag: 3.0,

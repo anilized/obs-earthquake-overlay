@@ -2,13 +2,19 @@ import { LAST_EVENT_KEY, type CustomEventItem, type EmscProps, type GenericExter
 export type { EmscProps, EmscMsg, GenericExternalMsg, CustomEventItem } from './emsc.shared';
 
 function getLastEventId(): string {
-  if (typeof localStorage === 'undefined') return '';
+  if (typeof localStorage === 'undefined') {
+    console.warn('LocalStorage is not available; cannot persist last event ID');
+    return '';
+  }
   try { return localStorage.getItem(LAST_EVENT_KEY) || ''; } catch { return ''; }
 }
 
 function setLastEventId(id: string) {
   if (typeof localStorage === 'undefined') return;
-  try { localStorage.setItem(LAST_EVENT_KEY, id); } catch { /* ignore */ }
+  try { 
+    console.log(`#EQ-STORE-CACHE ${id}`);
+    localStorage.setItem(LAST_EVENT_KEY, id); 
+  } catch { /* ignore */ }
 }
 
 export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: string) {
@@ -32,9 +38,15 @@ export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: strin
   let ws: WebSocket | null = null;
   let timer: number | undefined;
   let heartbeat: number | undefined;
+  let stopped = false; // prevent reconnects after explicit cleanup
   const seen = new Set<string>();
+  try {
+    const cached = getLastEventId();
+    if (cached) console.log(`#EQ-LAST ${cached}`);
+  } catch {}
 
   function open() {
+    if (stopped) return; // don't open if we've been stopped
     try { ws?.close(); } catch {}
     ws = new WebSocket(connectUrl);
     ws.onopen = () => {
@@ -102,6 +114,7 @@ export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: strin
             if (seen.has(latest.unid)) return;
             seen.add(latest.unid);
             setLastEventId(latest.unid);
+            try { console.log(`#EQ-LAST ${latest.unid}`) } catch {}
             onEvent(latest);
           }
           return;
@@ -111,12 +124,21 @@ export function connectEMSC(onEvent: (p: EmscProps) => void, urlOverride?: strin
     ws.onerror = () => { try { ws?.close(); } catch {} };
     ws.onclose = () => {
       if (heartbeat) { try { clearInterval(heartbeat) } catch {} ; heartbeat = undefined }
-      timer = window.setTimeout(open, 2000);
+      // Only attempt reconnect if not explicitly stopped
+      if (!stopped) {
+        timer = window.setTimeout(open, 2000);
+      }
     };
   }
 
   open();
-  return () => { if (timer) clearTimeout(timer); if (heartbeat) clearInterval(heartbeat); try { ws?.close(); } catch {} };
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+    if (heartbeat) clearInterval(heartbeat);
+    try { ws?.close(); } catch {}
+    ws = null;
+  };
 }
 
 // --- Generic external payload support ---
