@@ -1,0 +1,57 @@
+{
+  "groups": [
+    {
+      "name": "emsc",
+      "type": "com.obs.earthquake.emsc.EmscProperties",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "emsc.bearer",
+      "type": "java.lang.String",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties",
+      "defaultValue": ""
+    },
+    {
+      "name": "emsc.client-id",
+      "type": "java.lang.String",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties",
+      "defaultValue": "obs-overlay"
+    },
+    {
+      "name": "emsc.fixed-timestamp",
+      "type": "java.lang.Long",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties"
+    },
+    {
+      "name": "emsc.last-event-cache",
+      "type": "java.nio.file.Path",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties"
+    },
+    {
+      "name": "emsc.ping-interval-sec",
+      "type": "java.lang.Integer",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties",
+      "defaultValue": 25
+    },
+    {
+      "name": "emsc.since-window-sec",
+      "type": "java.lang.Integer",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties",
+      "defaultValue": 0
+    },
+    {
+      "name": "emsc.topic",
+      "type": "java.lang.String",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties",
+      "defaultValue": "earthquake_alerts"
+    },
+    {
+      "name": "emsc.ws-url",
+      "type": "java.lang.String",
+      "sourceType": "com.obs.earthquake.emsc.EmscProperties"
+    }
+  ],
+  "hints": []
+}

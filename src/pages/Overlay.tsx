@@ -1,23 +1,9 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { connectEMSC, EmscProps, fromGenericExternal } from '../lib/emsc'
-import { LAST_EVENT_KEY } from '../lib/emsc.shared'
-import { chan, loadSettings, BOXES, WS_ENABLED_KEY } from '../lib/config'
+import { connectEMSC, type EmscProps } from '../lib/emsc'
+import { applyTheme, defaultSettings, fetchSettings, sanitizeSettings, type Settings } from '../lib/config'
 import { useLocation } from 'react-router-dom'
 
 function useQuery() { return new URLSearchParams(useLocation().search) }
-
-type TestMsg = {
-  type: 'test'
-  payload: {
-    mag: number
-    magtype: string
-    depth: number
-    lat: number
-    lon: number
-    flynn_region: string
-    respectFilters: boolean
-  }
-}
 
 /** Build an asset URL that respects Vite base on GitHub Pages */
 function asset(url: string) {
@@ -35,10 +21,11 @@ function magColor(m: number) {
 
 
 export default function Overlay() {
-  const [cfg, setCfg] = useState(loadSettings)
+  const [cfg, setCfg] = useState<Settings>(defaultSettings)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [alert, setAlert] = useState<EmscProps | null>(null)
   const [cityLine, setCityLine] = useState<string>('')
-  const [latestMs, setLatestMs] = useState<number>(0)
+  const latestMsRef = useRef<number>(0)
   const [connToast, setConnToast] = useState<{ open: boolean; kind: 'info' | 'error'; text: string; status?: 'lost' | 'closed' }>({ open: false, kind: 'info', text: '' })
   const toastTimerRef = useRef<number | null>(null)
   const lastStatusRef = useRef<'open' | 'lost' | 'closed' | null>(null)
@@ -48,76 +35,35 @@ export default function Overlay() {
   const [pageActive, setPageActive] = useState<boolean>(() => {
     try { return document.visibilityState !== 'hidden' } catch { return true }
   })
-  const [wsEnabled, setWsEnabled] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem(WS_ENABLED_KEY)
-      return v == null ? true : v !== 'false'
-    } catch { return true }
-  })
   useEffect(() => {
     const onVis = () => setPageActive(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const fetched = await fetchSettings()
+        if (!cancelled) {
+          const normalized = sanitizeSettings(fetched)
+          setCfg(normalized)
+        }
+      } finally {
+        if (!cancelled) setSettingsLoaded(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    try { applyTheme(cfg.theme) } catch {}
+  }, [cfg.theme])
+
   // Stage size box; popup is centered inside this and fills horizontally
   const size = Math.max(400, Number(q.get('size') ?? 800))
   const padding = Number(q.get('pad') ?? 16) // inner horizontal padding inside the stage
-
-  // Always TURKEY bbox (ignore Settings country/bbox)
-  const TURKEY_BBOX = BOXES.Turkey
-
-  // settings sync + test + ws toggle
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const data = e.data as any
-      if (data?.type === 'config:update') {
-        setCfg(loadSettings()) // still use minMag, beep, soundUrl
-      } else if (data?.type === 'ws:set') {
-        const enabled = !!data.enabled
-        setWsEnabled(enabled)
-        try { localStorage.setItem(WS_ENABLED_KEY, String(enabled)) } catch {}
-      } else if (data?.type === 'test') {
-        const t = (data as TestMsg).payload
-        const p: EmscProps = {
-          unid: 'TEST-' + Date.now(),
-          time: new Date().toISOString(),
-          lat: Number(t.lat),
-          lon: Number(t.lon),
-          mag: Number(t.mag),
-          magtype: t.magtype,
-          depth: Number(t.depth),
-          flynn_region: t.flynn_region || 'TEST'
-        }
-        if (t.respectFilters) {
-          if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
-        } else {
-          showNewAlert(p)
-        }
-      } else if (data && typeof data === 'object') {
-        // Accept direct external payload: { magnitude, location{latitude,longitude}, depth, timestamp }
-        const p = fromGenericExternal(data)
-        if (p && passesFilters(p, cfg.minMag, TURKEY_BBOX)) {
-          try {
-            const cached = typeof localStorage !== 'undefined' ? (localStorage.getItem(LAST_EVENT_KEY) || '') : ''
-            if (cached && cached === p.unid) return
-            if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_EVENT_KEY, p.unid)
-            try { console.log(`#EQ-LAST ${p.unid}`) } catch {}
-          } catch {}
-          showNewAlert(p)
-        }
-      }
-    }
-    chan.addEventListener('message', handler)
-    window.addEventListener('storage', () => setCfg(loadSettings()))
-    return () => { chan.removeEventListener('message', handler as any) }
-  }, [cfg.minMag])
-
-  function passesFilters(p: EmscProps, minMag: number, bbox: typeof TURKEY_BBOX) {
-    const mag = Number(p.mag || 0)
-    const lat = Number(p.lat), lon = Number(p.lon)
-    return (mag >= minMag && lat >= bbox.latMin && lat <= bbox.latMax && lon >= bbox.lonMin && lon <= bbox.lonMax)
-  }
 
   // resolve sound: custom or default packaged asset
 const soundSrc = useMemo(() => {
@@ -135,27 +81,35 @@ const soundSrc = useMemo(() => {
 
   // EMSC live
   useEffect(() => {
-    if (!pageActive || !wsEnabled) return
-    const wsUrl = (cfg.wsUrl || '').trim() || undefined
-    const stop = connectEMSC((p) => {
-      const t = Date.parse(p.time || '') || 0
-      if (t <= latestMs) return
-      if (passesFilters(p, cfg.minMag, TURKEY_BBOX)) showNewAlert(p)
-    }, wsUrl, (status) => {
-      if (lastStatusRef.current === status) return
-      lastStatusRef.current = status
-      if (status === 'lost') {
-        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
-        setConnToast({ open: true, kind: 'error', text: 'WebSocket connection lost. Reconnecting…', status: 'lost' })
-        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 4000) as unknown as number
-      } else if (status === 'closed') {
-        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
-        setConnToast({ open: true, kind: 'info', text: 'WebSocket connection closed.', status: 'closed' })
-        toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 10000) as unknown as number
-      } else if (status === 'open') {
-        try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
-        setConnToast((t) => ({ ...t, open: false }))
-      }
+    if (!pageActive || !settingsLoaded || !cfg.streamEnabled) return
+    const stop = connectEMSC({
+      onEvent: (p) => {
+        const t = Date.parse(p.time || '') || 0
+        if (t <= latestMsRef.current) return
+        latestMsRef.current = t
+        showNewAlert(p)
+      },
+      onStatus: (status) => {
+        if (lastStatusRef.current === status) return
+        lastStatusRef.current = status
+        if (status === 'lost') {
+          try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+          setConnToast({ open: true, kind: 'error', text: 'Connection interrupted. Reconnecting…', status: 'lost' })
+          toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 4000) as unknown as number
+        } else if (status === 'closed') {
+          try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+          setConnToast({ open: true, kind: 'info', text: 'Stream closed.', status: 'closed' })
+          toastTimerRef.current = window.setTimeout(() => setConnToast((t) => ({ ...t, open: false })), 8000) as unknown as number
+        } else if (status === 'open') {
+          try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+          setConnToast((t) => ({ ...t, open: false }))
+        }
+      },
+      onSettings: (next) => {
+        const normalized = sanitizeSettings(next)
+        setCfg(normalized)
+        setSettingsLoaded(true)
+      },
     })
     const onUnload = () => { try { stop && stop() } catch {} }
     try {
@@ -169,7 +123,17 @@ const soundSrc = useMemo(() => {
       } catch {}
       stop && stop()
     }
-  }, [cfg.minMag, cfg.wsUrl, pageActive, latestMs, wsEnabled])
+  }, [cfg.streamEnabled, pageActive, settingsLoaded])
+
+  useEffect(() => {
+    if (!settingsLoaded) return
+    if (!cfg.streamEnabled) {
+      try { if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current) } catch {}
+      setConnToast({ open: true, kind: 'info', text: 'Stream paused by admin.', status: 'closed' })
+    } else {
+      setConnToast((t) => ({ ...t, open: false }))
+    }
+  }, [cfg.streamEnabled, settingsLoaded])
 
   /** Replace current alert with the new one, fetch city and restart audio */
   function showNewAlert(p: EmscProps) {
@@ -178,7 +142,7 @@ const soundSrc = useMemo(() => {
     setTimeout(() => {
       setAlert(p)
       const t = Date.parse(p.time || '') || Date.now()
-      setLatestMs(t)
+      latestMsRef.current = t
       const prov = (p as any).province ? String((p as any).province) : ''
       const region = p.flynn_region ? String(p.flynn_region) : ''
       const parts = [prov, region].filter(Boolean)

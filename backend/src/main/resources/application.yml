@@ -1,0 +1,21 @@
+server:
+  port: ${PORT:8080}
+
+emsc:
+  ws-url: ${EMSC_WS_URL:}
+  bearer: ${EMSC_WS_BEARER:}
+  topic: ${EMSC_ALERT_TOPIC:earthquake_alerts}
+  client-id: ${EMSC_ALERT_CLIENT_ID:obs-overlay}
+  fixed-timestamp: ${EMSC_ALERT_FIXED_TS:}
+  since-window-sec: ${EMSC_ALERT_SINCE_WINDOW_SEC:0}
+  ping-interval-sec: ${EMSC_WS_PING_SEC:25}
+  last-event-cache: ${EMSC_LAST_EVENT_CACHE:backend-data/last-event.txt}
+
+overlay:
+  settings-file: ${OVERLAY_SETTINGS_FILE:backend-data/settings.json}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

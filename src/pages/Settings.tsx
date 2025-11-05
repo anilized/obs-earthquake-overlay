@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react'
-import { defaultSettings, loadSettings, saveSettings, chan, applyTheme, type Theme, type OverlayStyle } from '../lib/config'
+import { applyTheme, defaultSettings, fetchSettings, resetSettings, sanitizeSettings, sendTestAlert, updateSettings, type Theme, type OverlayStyle, type Settings } from '../lib/config'
 
 type TestForm = {
   mag: number
@@ -10,6 +10,17 @@ type TestForm = {
 }
 
 type ToastKind = 'success' | 'info' | 'error'
+
+function createTestForm(minMag: number): TestForm {
+  const baseMag = Math.max(3, Number(minMag) + 0.5)
+  return {
+    mag: Number.isFinite(baseMag) ? Number(baseMag.toFixed(1)) : 3.5,
+    depth: 10,
+    lat: 39,
+    lon: 35,
+    respectFilters: true,
+  }
+}
 
 function useToast() {
   const [open, setOpen] = useState(false)
@@ -132,28 +143,32 @@ function MoonIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
-const WS_ENABLED_KEY = 'emscWsEnabled' as const;
-
 export default function Settings() {
-  const [s, setS] = useState(() => loadSettings())
-  const [wsEnabled, setWsEnabled] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem(WS_ENABLED_KEY)
-      return v == null ? true : v !== 'false'
-    } catch { return true }
-  })
-  const [test, setTest] = useState<TestForm>(() => {
-    const stored = loadSettings()
-    const baseMag = Math.max(3, Number(stored.minMag) + 0.5)
-    return {
-      mag: Number.isFinite(baseMag) ? Number(baseMag.toFixed(1)) : 3.5,
-      depth: 10,
-      lat: 39,
-      lon: 35,
-      respectFilters: true,
-    }
-  })
+  const [s, setS] = useState<Settings>(defaultSettings)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [test, setTest] = useState<TestForm>(() => createTestForm(defaultSettings.minMag))
   const toast = useToast()
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const fetched = await fetchSettings()
+        if (!cancelled) {
+          const normalized = sanitizeSettings(fetched)
+          setS(normalized)
+          const defaults = createTestForm(normalized.minMag)
+          setTest((prev) => ({ ...defaults, respectFilters: prev.respectFilters }))
+        }
+      } catch (err) {
+        console.warn('Falling back to default settings in UI', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     try {
@@ -166,55 +181,70 @@ export default function Settings() {
   const updateSetting = <K extends keyof typeof s>(key: K, value: (typeof s)[K]) =>
     setS((prev) => ({ ...prev, [key]: value }))
 
-  const handleSave = () => {
-    const payload = {
-      ...s,
-      minMag: Number.isFinite(s.minMag) ? s.minMag : defaultSettings.minMag,
-      displayDurationSec: Math.max(0, Number.isFinite(s.displayDurationSec) ? s.displayDurationSec : 0),
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const payload = sanitizeSettings(s)
+      const updated = await updateSettings(payload)
+      setS(updated)
+      toast.show('success', 'Settings saved. The overlay will refresh instantly.')
+    } catch (err) {
+      console.error('Failed to save settings', err)
+      toast.show('error', 'Could not save settings. Please try again.')
+    } finally {
+      setSaving(false)
     }
-    saveSettings(payload)
-    toast.show('success', 'Settings saved. The overlay will refresh instantly.')
   }
 
-  const handleResetDefaults = () => {
-    const next = { ...defaultSettings }
-    setS(next)
-    saveSettings(next)
-    toast.show('info', 'Defaults restored and saved.')
+  const handleResetDefaults = async () => {
+    setSaving(true)
+    try {
+      const next = await resetSettings()
+      setS(next)
+      setTest((prev) => ({ ...createTestForm(next.minMag), respectFilters: prev.respectFilters }))
+      toast.show('info', 'Defaults restored and saved.')
+    } catch (err) {
+      console.error('Failed to reset settings', err)
+      toast.show('error', 'Could not reset settings.')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleToggleConnection = () => {
-    const next = !wsEnabled
-    setWsEnabled(next)
-    try { localStorage.setItem(WS_ENABLED_KEY, String(next)) } catch { }
-    chan.postMessage({ type: 'ws:set', enabled: next })
-    if (next) toast.show('success', 'Connection started.')
-    else toast.show('info', 'Connection stopped.')
+  const handleToggleConnection = async () => {
+    const prev = s
+    const nextEnabled = !prev.streamEnabled
+    const optimistic = { ...prev, streamEnabled: nextEnabled }
+    setS(optimistic)
+    try {
+      const updated = await updateSettings(sanitizeSettings(optimistic))
+      setS(updated)
+      toast.show(nextEnabled ? 'success' : 'info', nextEnabled ? 'Connection started.' : 'Connection stopped.')
+    } catch (err) {
+      console.error('Failed to toggle streaming', err)
+      setS(prev)
+      toast.show('error', 'Unable to update connection state.')
+    }
   }
 
-  const handleSendTest = () => {
-    chan.postMessage({
-      type: 'test',
-      payload: {
-        ...test,
+  const handleSendTest = async () => {
+    try {
+      await sendTestAlert({
         mag: Number(test.mag),
         depth: Number(test.depth),
         lat: Number(test.lat),
         lon: Number(test.lon),
-      },
-    })
-    toast.show('success', 'Test alert dispatched. Watch the overlay for the animation.')
+        respectFilters: test.respectFilters,
+      })
+      toast.show('success', 'Test alert dispatched. Watch the overlay for the animation.')
+    } catch (err) {
+      console.error('Failed to send test alert', err)
+      toast.show('error', 'Could not dispatch the test alert.')
+    }
   }
 
   const handleResetTest = () => {
-    const baseMag = Math.max(3, Number(s.minMag) + 0.5)
-    setTest({
-      mag: Number.isFinite(baseMag) ? Number(baseMag.toFixed(1)) : 3.5,
-      depth: 10,
-      lat: 39,
-      lon: 35,
-      respectFilters: true,
-    })
+    setTest(createTestForm(s.minMag))
     toast.show('info', 'Test values restored.')
   }
 
@@ -394,6 +424,14 @@ export default function Settings() {
     backgroundImage: `linear-gradient(115deg, rgba(${previewR}, ${previewG}, ${previewB}, 0.9), rgba(15, 23, 42, 0.85))`,
   } as React.CSSProperties
 
+  if (loading) {
+    return (
+      <div className="min-h-full bg-slate-950 text-white flex items-center justify-center">
+        <span className="text-sm text-white/70">Loading settings…</span>
+      </div>
+    )
+  }
+
   return (
     <div className={containerClass}>
       <div className="mx-auto max-w-5xl px-6 pb-16 pt-10">
@@ -405,12 +443,13 @@ export default function Settings() {
               onClick={handleToggleConnection}
               className={[
                 'mt-3 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg transition',
-                wsEnabled
+                s.streamEnabled
                   ? 'bg-rose-600 text-white shadow-rose-600/40 hover:bg-rose-500'
                   : 'bg-emerald-600 text-white shadow-emerald-600/40 hover:bg-emerald-500',
               ].join(' ')}
+              disabled={saving || loading}
             >
-              {wsEnabled ? 'Stop Notifications' : 'Start Notifications'}
+              {s.streamEnabled ? 'Stop Notifications' : 'Start Notifications'}
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -711,17 +750,17 @@ export default function Settings() {
               </div>
 
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                The overlay listens on the BroadcastChannel and will render this synthetic alert instantly.
+                The backend will forward this synthetic alert to the overlay instantly.
               </p>
             </div>
           </section>
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <button type="button" className={primaryButtonClass} onClick={handleSave}>
+          <button type="button" className={primaryButtonClass} onClick={handleSave} disabled={saving}>
             Save changes
           </button>
-          <button type="button" className={ghostButtonClass} onClick={handleResetDefaults}>
+          <button type="button" className={ghostButtonClass} onClick={handleResetDefaults} disabled={saving}>
             Reset to defaults
           </button>
         </div>

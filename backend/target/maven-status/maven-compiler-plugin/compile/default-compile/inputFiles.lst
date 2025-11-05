@@ -1,0 +1,14 @@
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\config\OverlaySettings.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\EmscConfiguration.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\web\EmscController.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\config\OverlaySettingsService.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\web\SpaController.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\web\TestEventRequest.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\Application.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\service\EmscClient.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\service\EmscEventMapper.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\EmscProperties.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\support\LastEventStore.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\model\EmscEvent.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\emsc\service\EmscService.java
+C:\Users\pc\Documents\development\obs-earthquake-overlay\backend\src\main\java\com\obs\earthquake\config\SettingsController.java

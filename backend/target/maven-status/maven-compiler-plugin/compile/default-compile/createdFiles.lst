@@ -1,0 +1,16 @@
+com\obs\earthquake\emsc\service\EmscClient$EmscStatus.class
+com\obs\earthquake\config\SettingsController.class
+com\obs\earthquake\emsc\service\EmscClient$Listener.class
+com\obs\earthquake\emsc\service\EmscService.class
+com\obs\earthquake\emsc\support\LastEventStore.class
+com\obs\earthquake\emsc\service\EmscClient.class
+com\obs\earthquake\emsc\web\TestEventRequest.class
+com\obs\earthquake\config\OverlaySettingsService.class
+com\obs\earthquake\emsc\service\EmscEventMapper.class
+META-INF\spring-configuration-metadata.json
+com\obs\earthquake\emsc\EmscConfiguration.class
+com\obs\earthquake\Application.class
+com\obs\earthquake\web\SpaController.class
+com\obs\earthquake\emsc\model\EmscEvent.class
+com\obs\earthquake\emsc\EmscProperties.class
+com\obs\earthquake\config\OverlaySettings.class
