@@ -1,64 +1,44 @@
 package com.obs.earthquake.emsc.support;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.annotation.PreDestroy;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class LastEventStore {
 
-    private static final Logger log = LoggerFactory.getLogger(LastEventStore.class);
+    private static final String CACHE_NAME = "lastEventCache";
+    private static final String CACHE_KEY = "last-event-id";
 
-    private final Path cachePath;
-    private final AtomicReference<String> lastId = new AtomicReference<>();
+    private final CacheManager cacheManager;
+    private final Cache<String, String> cache;
 
-    public LastEventStore(Path cachePath) {
-        this.cachePath = cachePath;
-        loadFromDisk();
+    public LastEventStore() {
+        this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+                .withCache(CACHE_NAME,
+                        CacheConfigurationBuilder.newCacheConfigurationBuilder(
+                                String.class, String.class, ResourcePoolsBuilder.heap(10)))
+                .build(true);
+        this.cache = cacheManager.getCache(CACHE_NAME, String.class, String.class);
     }
 
     public Optional<String> read() {
-        return Optional.ofNullable(lastId.get());
+        return Optional.ofNullable(cache.get(CACHE_KEY));
     }
 
     public void write(String id) {
         if (id == null || id.isBlank()) {
             return;
         }
-        lastId.set(id);
-        persist(id);
+        cache.put(CACHE_KEY, id);
     }
 
-    private void loadFromDisk() {
-        try {
-            if (Files.exists(cachePath)) {
-                String value = Files.readString(cachePath, StandardCharsets.UTF_8).trim();
-                if (!value.isEmpty()) {
-                    lastId.set(value);
-                    log.info("Loaded last event id from cache: {}", value);
-                }
-            }
-        } catch (IOException e) {
-            log.warn("Could not read last event cache {}: {}", cachePath, e.getMessage());
-        }
-    }
-
-    private void persist(String id) {
-        try {
-            Path parent = cachePath.getParent();
-            if (parent != null && Files.notExists(parent)) {
-                Files.createDirectories(parent);
-            }
-            Files.writeString(cachePath, id, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-        } catch (IOException e) {
-            log.warn("Could not persist last event cache {}: {}", cachePath, e.getMessage());
-        }
+    @PreDestroy
+    void shutdown() {
+        cacheManager.close();
     }
 }

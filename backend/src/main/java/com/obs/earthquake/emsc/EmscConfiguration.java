@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class EmscConfiguration {
 
     @Bean
-    public LastEventStore lastEventStore(EmscProperties properties) {
-        return new LastEventStore(properties.lastEventCache());
+    public LastEventStore lastEventStore() {
+        return new LastEventStore();
     }
 }

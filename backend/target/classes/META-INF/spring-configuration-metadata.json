@@ -25,11 +25,6 @@
       "sourceType": "com.obs.earthquake.emsc.EmscProperties"
     },
     {
-      "name": "emsc.last-event-cache",
-      "type": "java.nio.file.Path",
-      "sourceType": "com.obs.earthquake.emsc.EmscProperties"
-    },
-    {
       "name": "emsc.ping-interval-sec",
       "type": "java.lang.Integer",
       "sourceType": "com.obs.earthquake.emsc.EmscProperties",

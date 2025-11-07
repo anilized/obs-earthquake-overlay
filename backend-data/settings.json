@@ -1,0 +1,10 @@
+{
+  "minMag" : 3.0,
+  "beep" : true,
+  "soundUrl" : "assets/default_alert.mp3",
+  "notifColor" : "#dc2626",
+  "displayDurationSec" : 8,
+  "theme" : "dark",
+  "overlayStyle" : "square",
+  "streamEnabled" : true
+}
